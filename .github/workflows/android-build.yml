@@ -37,14 +37,15 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
 
+      - name: Gradle wrapper permissions
+        run: chmod +x android/gradlew
+
       - name: Build release APK
-        uses: expo/expo-github-action/eas-build@main
-        with:
-          eas-cli-version: latest
-          command: build -p android --profile preview --local --non-interactive --no-wait --output uchiha-clan.apk
-        env:
-          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Copy APK to workspace root
+        run: cp android/app/build/outputs/apk/release/app-release.apk uchiha-clan.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
