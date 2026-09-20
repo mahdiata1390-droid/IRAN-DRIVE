@@ -263,6 +263,41 @@ export function useMessages(scope: ChatScope, myId: string | null) {
     [myId, scope.id, scopeColumn, mergeMessage],
   );
 
+  /** Sends a media message (already uploaded to storage) or a text sticker. */
+  const sendMedia = useCallback(
+    async (media: {
+      kind: 'image' | 'video' | 'audio' | 'voice' | 'file' | 'sticker';
+      uri: string;
+      name?: string;
+      size?: number;
+      durationMs?: number;
+      waveform?: number[];
+      stickerText?: string;
+    }) => {
+      if (!myId) return;
+      const isSticker = media.kind === 'sticker' && !!media.stickerText;
+      const insert = {
+        [scopeColumn]: scope.id,
+        sender_id: myId,
+        content: isSticker ? media.stickerText! : '',
+        media_type: media.kind,
+        media_url: isSticker ? null : media.uri,
+        media_name: media.name ?? null,
+        media_size: media.size ?? null,
+        media_duration_ms: media.durationMs ?? null,
+        media_waveform: media.waveform ?? null,
+      };
+      const { data, error } = await supabase
+        .from('messages')
+        .insert(insert)
+        .select(MESSAGE_SELECT)
+        .single();
+      if (error) throw error;
+      if (data) mergeMessage(data as Message);
+    },
+    [myId, scope.id, scopeColumn, mergeMessage],
+  );
+
   const edit = useCallback(async (messageId: string, content: string) => {
     const { data, error } = await supabase
       .from('messages')
@@ -358,6 +393,7 @@ export function useMessages(scope: ChatScope, myId: string | null) {
     onlineCount,
     pinnedMessages,
     send,
+    sendMedia,
     edit,
     remove,
     toggleReaction,

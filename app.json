@@ -13,8 +13,9 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.uchihaclan.messenger",
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "UCHIHA Clan needs photo access to set your avatar.",
-        "NSCameraUsageDescription": "UCHIHA Clan needs camera access to take a profile photo."
+        "NSPhotoLibraryUsageDescription": "UCHIHA Clan needs photo access to set your avatar and share photos.",
+        "NSCameraUsageDescription": "UCHIHA Clan needs camera access to take a profile photo.",
+        "NSMicrophoneUsageDescription": "UCHIHA Clan needs microphone access to record voice messages."
       }
     },
     "android": {
@@ -29,6 +30,12 @@
     },
     "web": {
       "output": "spa",
+      "name": "UCHIHA Clan Messenger",
+      "shortName": "UCHIHA",
+      "display": "standalone",
+      "orientation": "portrait",
+      "backgroundColor": "#050203",
+      "themeColor": "#DC2626",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -44,7 +51,13 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "UCHIHA Clan needs photo access to set your avatar."
+          "photosPermission": "UCHIHA Clan needs photo access to set your avatar and share photos."
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow UCHIHA Clan to access your microphone to record voice messages."
         }
       ]
     ],

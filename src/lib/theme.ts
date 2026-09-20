@@ -1,4 +1,4 @@
-export const C = {
+export const C_DARK = {
   bg: '#0A0A0B',
   bgElevated: '#131316',
   bgCard: '#17171B',
@@ -23,7 +23,61 @@ export const C = {
   purple: '#A78BFA',
   blue: '#60A5FA',
   teal: '#2DD4BF',
-} as const;
+  overlay: 'rgba(0,0,0,0.6)',
+  header: '#131316',
+  input: '#17171B',
+};
+
+export const C_LIGHT = {
+  bg: '#F7F6F5',
+  bgElevated: '#FFFFFF',
+  bgCard: '#FFFFFF',
+  surface: '#F0EEEC',
+  surfacePress: '#E5E2DF',
+  border: '#E4E1DE',
+  borderStrong: '#CFCBC7',
+  text: '#1B1A1A',
+  textDim: '#5C5A58',
+  textFaint: '#928F8B',
+  red: '#B91C1C',
+  redDark: '#7F1D1D',
+  redSoft: 'rgba(185, 28, 28, 0.10)',
+  redBorder: 'rgba(185, 28, 28, 0.30)',
+  bubbleMine: '#F6D8D8',
+  bubbleMineBorder: '#EFC2C2',
+  bubbleOther: '#FFFFFF',
+  bubbleOtherBorder: '#E4E1DE',
+  online: '#16A34A',
+  danger: '#DC2626',
+  gold: '#B45309',
+  purple: '#7C3AED',
+  blue: '#2563EB',
+  teal: '#0D9488',
+  overlay: 'rgba(0,0,0,0.35)',
+  header: '#FFFFFF',
+  input: '#FFFFFF',
+};
+
+export type Palette = typeof C_DARK;
+
+let current: 'dark' | 'light' = 'dark';
+let palette: Palette = { ...C_DARK };
+
+export function setTheme(mode: 'dark' | 'light'): void {
+  current = mode;
+  palette = mode === 'dark' ? { ...C_DARK } : { ...C_LIGHT };
+}
+
+export function themeMode(): 'dark' | 'light' {
+  return current;
+}
+
+/** Live theme palette — properties resolve against the active mode. */
+export const C: Palette = new Proxy({ ...C_DARK }, {
+  get(_t, prop: string) {
+    return palette[prop as keyof Palette];
+  },
+});
 
 export const R = { s: 6, m: 10, l: 16, xl: 24 } as const;
 

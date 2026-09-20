@@ -4,31 +4,33 @@ import { Link, Stack, router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/supabase';
 import { Button, Input } from '@/components/ui';
-import { C, R } from '@/lib/theme';
+import { t } from '@/i18n';
+import { C } from '@/lib/theme';
+
+const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
 
 export default function SignUpScreen() {
+  const tr = t();
   const [username, setUsername] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [codUid, setCodUid] = useState('');
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const usernameOk = /^[a-zA-Z0-9_]{3,20}$/.test(username);
-  const passwordOk = password.length >= 8;
-  const codOk = codUid === '' || /^\d{5,12}$/.test(codUid);
+  const usernameOk = USERNAME_RE.test(username);
+  const passwordOk = password.length >= 8 && /[a-zA-Z]/.test(password) && /\d/.test(password);
+  const confirmOk = confirm.length > 0 && confirm === password;
 
   const submit = async () => {
     setError(null);
-    if (!usernameOk) return setError('Username: 3–20 letters, numbers or underscores.');
-    if (!displayName.trim()) return setError('Display name is required.');
-    if (!codOk) return setError('COD Mobile UID must be 5–12 digits.');
-    if (!email.trim().includes('@')) return setError('Enter a valid email.');
-    if (!passwordOk) return setError('Password must be at least 8 characters.');
+    if (!usernameOk) return setError(tr.auth.usernameHint);
+    if (!displayName.trim()) return setError(`${tr.auth.displayName} is required.`);
+    if (!passwordOk) return setError(tr.auth.passwordHint);
+    if (!confirmOk) return setError(tr.auth.mismatch);
 
     setBusy(true);
-    // Check username availability before creating the account.
+    // Username availability check.
     const { data: taken } = await supabase
       .from('profiles')
       .select('id')
@@ -40,24 +42,25 @@ export default function SignUpScreen() {
       return;
     }
 
-    const { error: err } = await supabase.auth.signUp({
-      email: email.trim().toLowerCase(),
+    // Username-only accounts use a synthetic Supabase email: <username>@users.uchiha-messenger.com
+    const email = `${username.trim().toLowerCase()}@users.uchiha-messenger.com`;
+    const { data, error: err } = await supabase.auth.signUp({
+      email,
       password,
-      options: {
-        data: {
-          username: username.trim(),
-          display_name: displayName.trim(),
-          cod_uid: codUid.trim() || null,
-        },
-        emailRedirectTo: 'uchihaclan://auth',
-      },
+      options: { data: { username: username.trim(), display_name: displayName.trim() } },
     });
-    setBusy(false);
     if (err) {
-      setError(err.message);
+      setBusy(false);
+      setError(friendly(err.message));
       return;
     }
-    router.replace('/(auth)/check-email');
+    // Auto-login when email confirmation is disabled (default here).
+    if (data.session) {
+      router.replace('/(tabs)/chats');
+      return;
+    }
+    setBusy(false);
+    setError('Account created. Please log in.');
   };
 
   return (
@@ -67,69 +70,59 @@ export default function SignUpScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 28 }} keyboardShouldPersistTaps="handled">
           <Pressable onPress={() => router.back()} hitSlop={12} style={{ marginBottom: 24 }}>
-            <Text style={{ color: C.textDim, fontSize: 15 }}>← Back</Text>
+            <Text style={{ color: C.textDim, fontSize: 15 }}>← {tr.common.back}</Text>
           </Pressable>
 
           <Text style={{ color: C.text, fontSize: 30, fontWeight: '900', letterSpacing: 1 }}>
-            Join UCHIHA
+            {tr.auth.createAccount}
           </Text>
           <Text style={{ color: C.textDim, fontSize: 14.5, marginTop: 6, marginBottom: 28 }}>
-            Create your clan identity.
+            {tr.auth.tagline}
           </Text>
 
           <View style={{ gap: 14 }}>
             <Input
-              label="Username"
+              label={tr.auth.username}
               value={username}
-              onChangeText={(t) => setUsername(t.replace(/[^a-zA-Z0-9_]/g, ''))}
+              onChangeText={(v) => setUsername(v.replace(/[^a-zA-Z0-9_]/g, ''))}
               autoCapitalize="none"
               autoComplete="username"
               placeholder="shadow_uchiha"
-              error={
-                username.length > 0 && !usernameOk ? '3–20 letters, numbers or underscores' : null
-              }
+              error={username.length > 0 && !usernameOk ? tr.auth.usernameHint : null}
             />
             <Input
-              label="Display Name"
+              label={tr.auth.displayName}
               value={displayName}
               onChangeText={setDisplayName}
               placeholder="Shadow"
             />
             <Input
-              label="COD Mobile UID (optional)"
-              value={codUid}
-              onChangeText={(t) => setCodUid(t.replace(/\D/g, ''))}
-              keyboardType="number-pad"
-              placeholder="1234567890"
-              error={!codOk ? 'UID must be 5–12 digits' : null}
-            />
-            <Input
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              placeholder="you@clan.com"
-            />
-            <Input
-              label="Password"
+              label={tr.auth.password}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
               autoComplete="new-password"
-              placeholder="Min. 8 characters"
-              error={password.length > 0 && !passwordOk ? 'At least 8 characters' : null}
+              placeholder="••••••••"
+              error={password.length > 0 && !passwordOk ? tr.auth.passwordHint : null}
+            />
+            <Input
+              label={tr.auth.confirmPassword}
+              value={confirm}
+              onChangeText={setConfirm}
+              secureTextEntry
+              autoComplete="new-password"
+              placeholder="••••••••"
+              error={confirm.length > 0 && !confirmOk ? tr.auth.mismatch : null}
             />
             {error ? <Text style={{ color: C.danger, fontSize: 13 }}>{error}</Text> : null}
-            <Button label="Create Account" onPress={() => void submit()} loading={busy} />
+            <Button label={tr.auth.register} onPress={() => void submit()} loading={busy} />
           </View>
 
           <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 32 }}>
-            <Text style={{ color: C.textFaint, fontSize: 14 }}>Already enlisted?</Text>
+            <Text style={{ color: C.textFaint, fontSize: 14 }}>{tr.auth.haveOne}</Text>
             <Link href="/(auth)/login" asChild>
               <Pressable>
-                <Text style={{ color: C.red, fontSize: 14, fontWeight: '700' }}>Sign in</Text>
+                <Text style={{ color: C.red, fontSize: 14, fontWeight: '700' }}>{tr.auth.login}</Text>
               </Pressable>
             </Link>
           </View>
@@ -137,4 +130,17 @@ export default function SignUpScreen() {
       </KeyboardAvoidingView>
     </View>
   );
+}
+
+function friendly(message: string): string {
+  const m = message.toLowerCase();
+  if (message.includes('already registered')) return 'That username is already taken.';
+  if (m.includes('password')) return 'Password: at least 8 characters with a letter and a number.';
+  if (m.includes('rate limit') || m.includes('too many requests') || m.includes('over_')) {
+    return 'Too many attempts. Wait a minute and try again.';
+  }
+  if (m.includes('timeout') || m.includes('failed to fetch') || m.includes('network')) {
+    return 'Network problem. Check your connection and try again.';
+  }
+  return message;
 }

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>UCHIHA — SQL Setup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Tahoma, sans-serif;
+    background: #0a0a0b; color: #f4f4f5;
+    padding: 16px 12px 48px;
+  }
+  h1 { font-size: 20px; color: #ef4444; text-align: center; margin-bottom: 4px; }
+  .sub { text-align: center; color: #a1a1aa; font-size: 13px; margin-bottom: 16px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .tab {
+    flex: 1; padding: 12px 8px; border-radius: 12px; border: 1px solid #34343c;
+    background: #17171b; color: #a1a1aa; font-size: 14px; font-weight: 600;
+    text-align: center; cursor: pointer;
+  }
+  .tab.active { background: #7f1d1d; border-color: #991b1b; color: #fff; }
+  .step {
+    background: #17171b; border: 1px solid #26262c; border-radius: 14px;
+    padding: 14px; margin-bottom: 12px; font-size: 14px; line-height: 1.9;
+  }
+  .step b { color: #f87171; }
+  .copy {
+    display: block; width: 100%; padding: 16px; margin: 10px 0 4px;
+    background: #dc2626; color: #fff; border: none; border-radius: 14px;
+    font-size: 17px; font-weight: 700; cursor: pointer;
+  }
+  .copy:active { background: #991b1b; }
+  .open {
+    display: block; text-align: center; text-decoration: none; width: 100%;
+    padding: 14px; margin-bottom: 6px; background: #1e1e23; color: #f4f4f5;
+    border: 1px solid #34343c; border-radius: 14px; font-size: 15px; font-weight: 600;
+  }
+  #out {
+    white-space: pre; overflow: auto; max-height: 40vh; direction: ltr; text-align: left;
+    background: #131316; border: 1px solid #26262c; border-radius: 12px;
+    padding: 10px; font-size: 10px; line-height: 1.5; color: #d4d4d8;
+    font-family: ui-monospace, Menlo, monospace; user-select: all; -webkit-user-select: all;
+  }
+  .ok { color: #4ade80; font-weight: 700; text-align: center; display: none; margin-top: 8px; }
+  .err { color: #f87171; font-size: 13px; }
+</style>
+</head>
+<body>
+  <h1> canti ⛩ راه‌اندازی دیتابیس</h1>
+  <div class="sub">UCHIHA Clan Messenger — Supabase SQL</div>
+
+  <div class="step">
+    <b>قدم ۱:</b> دکمه‌ی «کپی اسکریپت ۱» را بزن.<br>
+    <b>قدم ۲:</b> در مرورگر برو به <b>supabase.com/dashboard</b> → پروژه‌ات → منوی چپ <b>SQL Editor</b> → دکمه‌ی <b>New query</b> → داخل کادر لمس طولانی → <b>Paste</b> → دکمه‌ی <b>Run</b>.<br>
+    باید بنویسد <b style="color:#4ade80">Success. No rows returned</b>.<br>
+    <b>قدم ۳:</b> برگرد اینجا، دکمه‌ی «کپی اسکریپت ۲» را بزن و دقیقاً همان کار را در یک <b>New query</b> جدید تکرار کن.<br>
+    <b>قدم ۴:</b> منوی چپ → <b>Authentication</b> → <b>Providers</b> → <b>Email</b> → کلید <b>Confirm email</b> را خاموش کن → <b>Save</b>.
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tab1" onclick="show(1)">اسکریپت ۱ (schema.sql)</div>
+    <div class="tab" id="tab2" onclick="show(2)">اسکریپت ۲ (schema-v2.sql)</div>
+  </div>
+
+  <button class="copy" id="btn" onclick="copySql()">📋 کپی اسکریپت ۱</button>
+  <div class="ok" id="okMsg">✅ کپی شد! حالا برو SQL Editor و Paste کن</div>
+  <div class="err" id="errMsg"></div>
+  <pre id="out">در حال بارگذاری…</pre>
+
+<script>
+  var texts = { 1: '', 2: '' };
+  var current = 1;
+
+  function show(n) {
+    current = n;
+    document.getElementById('tab1').className = 'tab' + (n === 1 ? ' active' : '');
+    document.getElementById('tab2').className = 'tab' + (n === 2 ? ' active' : '');
+    document.getElementById('btn').textContent = '📋 کپی اسکریپت ' + n;
+    document.getElementById('out').textContent = texts[n] || 'در حال بارگذاری…';
+    document.getElementById('okMsg').style.display = 'none';
+  }
+
+  function copySql() {
+    var t = texts[current];
+    if (!t) { alert('هنوز لود نشده، چند لحظه صبر کن'); return; }
+    var done = function () {
+      document.getElementById('okMsg').style.display = 'block';
+      setTimeout(function () { document.getElementById('okMsg').style.display = 'none'; }, 4000);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t).then(done, function () { legacy(t, done); });
+    } else { legacy(t, done); }
+  }
+
+  function legacy(t, done) {
+    var ta = document.createElement('textarea');
+    ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { alert('کپی نشد — متن زیر را دستی انتخاب و کپی کن'); }
+    document.body.removeChild(ta);
+  }
+
+  Promise.all([
+    fetch('schema.sql').then(function (r) { return r.text(); }),
+    fetch('schema-v2.sql').then(function (r) { return r.text(); })
+  ]).then(function (res) {
+    texts[1] = res[0]; texts[2] = res[1];
+    document.getElementById('out').textContent = texts[1].slice(0, 4000) + '\n… (کل متن با دکمه‌ی کپی منتقل می‌شود)';
+  }).catch(function (e) {
+    document.getElementById('errMsg').textContent = 'خطا در بارگذاری: ' + e;
+  });
+</script>
+</body>
+</html>

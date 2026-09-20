@@ -17,6 +17,7 @@ import { MessageActionsModal, PinnedModal, SearchModal } from '@/features/chat/c
 import { EmptyState, Spinner } from '@/components/ui';
 import { useMessages, type ChatScope } from '@/hooks/use-messages';
 import { useSession } from '@/providers/session';
+import { t } from '@/i18n';
 import { C, R } from '@/lib/theme';
 import { dayLabel } from '@/lib/time';
 import { canModerate, canPin, roleColor } from '@/lib/roles';
@@ -47,6 +48,7 @@ export function ChatScreen({
     partnerLastRead,
     pinnedMessages,
     send,
+    sendMedia,
     edit,
     remove,
     toggleReaction,
@@ -62,6 +64,7 @@ export function ChatScreen({
   const [actionsFor, setActionsFor] = useState<Message | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [pinnedOpen, setPinnedOpen] = useState(false);
+  const tr = t();
 
   const myRole = profile?.role ?? 'member';
   const isRoom = scope.kind === 'room';
@@ -116,6 +119,17 @@ export function ChatScreen({
       })();
     },
     [send, replyTo, parseMentions],
+  );
+
+  const handleSendMedia = useCallback(
+    async (media: Parameters<typeof sendMedia>[0]) => {
+      try {
+        await sendMedia(media);
+      } catch (e) {
+        Alert.alert('Send failed', e instanceof Error ? e.message : 'Try again.');
+      }
+    },
+    [sendMedia],
   );
 
   const handleEditSave = useCallback(
@@ -288,7 +302,7 @@ export function ChatScreen({
                     ⛩ UCHIHA CLAN
                   </Text>
                   <Text style={{ color: C.textFaint, fontSize: 11.5, marginTop: 2 }}>
-                    Beginning of chat history
+                    {tr.chat.pinnedTitle === 'Pinned message' ? 'Beginning of chat history' : 'ابتدای تاریخچه گفتگو'}
                   </Text>
                 </View>
               ) : null
@@ -331,6 +345,7 @@ export function ChatScreen({
 
         <Composer
           onSend={handleSend}
+          onSendMedia={handleSendMedia}
           onEditSave={handleEditSave}
           replyTo={replyTo}
           onCancelReply={() => setReplyTo(null)}

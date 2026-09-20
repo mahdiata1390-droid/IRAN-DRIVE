@@ -9,35 +9,42 @@ import { Button } from '@/components/ui';
 import { useRequireAuth } from '@/hooks/use-require-auth';
 import { useSession } from '@/providers/session';
 import { supabase } from '@/lib/supabase';
+import { t, currentLang, setLang, type Lang } from '@/i18n';
+import { themeMode, setTheme } from '@/lib/theme';
 import { C, R } from '@/lib/theme';
 import { roleLabel } from '@/lib/roles';
 
 export default function ProfileScreen() {
   const gated = useRequireAuth();
+  const tr = t();
   const { session, profile, signOut, refreshProfile } = useSession();
   const insets = useSafeAreaInsets();
   const [claiming, setClaiming] = useState(false);
+  const [lang, setLangState] = useState<Lang>(currentLang());
+  const [mode, setModeState] = useState<'dark' | 'light'>(themeMode());
 
   if (gated || !profile) return <View style={{ flex: 1, backgroundColor: C.bg }} />;
 
+  const isMod = ['owner', 'leader', 'co_leader', 'moderator'].includes(profile.role);
+
   const claimOwnership = () => {
     Alert.alert(
-      'Claim Ownership',
-      'Become the clan Owner? This can only be done once — the first member to claim it leads UCHIHA.',
+      tr.members.claimOwnership,
+      tr.common.confirm,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: tr.common.cancel, style: 'cancel' },
         {
-          text: 'Claim',
+          text: tr.common.ok,
           onPress: () => {
             setClaiming(true);
             void (async () => {
               try {
                 const { error } = await supabase.rpc('claim_ownership');
                 if (error) {
-                  Alert.alert('Unavailable', error.message);
+                  Alert.alert(tr.common.error, error.message);
                 } else {
                   await refreshProfile();
-                  Alert.alert('⚡ You are the Owner', 'You now lead the UCHIHA clan.');
+                  Alert.alert('⚡', tr.members.claimOwnership);
                 }
               } finally {
                 setClaiming(false);
@@ -68,6 +75,49 @@ export default function ProfileScreen() {
     </View>
   );
 
+  const selectorRow = (
+    icon: string,
+    label: string,
+    options: { key: string; label: string }[],
+    active: string,
+    onPick: (key: string) => void,
+  ) => (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: C.border,
+        flexWrap: 'wrap',
+      }}
+    >
+      <Ionicons name={icon as never} size={18} color={C.textDim} />
+      <Text style={{ color: C.textDim, fontSize: 14, width: 90 }}>{label}</Text>
+      <View style={{ flexDirection: 'row', gap: 6, flex: 1, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        {options.map((o) => (
+          <Pressable
+            key={o.key}
+            onPress={() => onPick(o.key)}
+            style={{
+              backgroundColor: active === o.key ? C.redSoft : C.surface,
+              borderWidth: 1,
+              borderColor: active === o.key ? C.redBorder : C.border,
+              borderRadius: 999,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+            }}
+          >
+            <Text style={{ color: active === o.key ? C.red : C.textDim, fontWeight: '700', fontSize: 12.5 }}>
+              {o.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -77,11 +127,10 @@ export default function ProfileScreen() {
             UCHIHA CLAN
           </Text>
           <Text style={{ color: C.text, fontSize: 26, fontWeight: '900', marginTop: 2 }}>
-            Profile
+            {tr.profile.title}
           </Text>
         </View>
 
-        {/* Identity card */}
         <View
           style={{
             marginHorizontal: 16,
@@ -109,26 +158,69 @@ export default function ProfileScreen() {
           ) : null}
         </View>
 
-        {/* Actions */}
         <View style={{ marginTop: 16, gap: 10, paddingHorizontal: 16 }}>
-          <Button
-            label="Edit Profile"
-            variant="subtle"
-            onPress={() => router.push('/edit-profile')}
-          />
+          <Button label={tr.settings.editProfile} variant="subtle" onPress={() => router.push('/edit-profile')} />
+          {isMod ? (
+            <Button label={`🛡️ ${tr.admin.title}`} variant="subtle" onPress={() => router.push('/admin')} />
+          ) : null}
           {profile.role === 'member' ? (
-            <Button label="Claim Ownership" variant="ghost" loading={claiming} onPress={claimOwnership} />
+            <Button label={tr.members.claimOwnership} variant="ghost" loading={claiming} onPress={claimOwnership} />
           ) : null}
           <Button
-            label="Sign Out"
+            label={tr.auth.logout}
             variant="danger"
             onPress={() => {
-              Alert.alert('Sign out', 'Really leave the clan chat?', [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Sign Out', style: 'destructive', onPress: () => void signOut() },
+              Alert.alert(tr.auth.logout, tr.common.confirm, [
+                { text: tr.common.cancel, style: 'cancel' },
+                { text: tr.auth.logout, style: 'destructive', onPress: () => void signOut() },
               ]);
             }}
           />
+        </View>
+
+        {/* Settings */}
+        <View
+          style={{
+            marginHorizontal: 16,
+            marginTop: 20,
+            backgroundColor: C.bgElevated,
+            borderWidth: 1,
+            borderColor: C.border,
+            borderRadius: R.xl,
+            paddingHorizontal: 16,
+            paddingVertical: 6,
+          }}
+        >
+          <Text style={{ color: C.text, fontWeight: '800', fontSize: 15, paddingVertical: 10 }}>
+            {tr.settings.title}
+          </Text>
+          {selectorRow(
+            'language',
+            tr.settings.language,
+            [
+              { key: 'fa', label: '🇮🇷 فارسی' },
+              { key: 'en', label: '🇬🇧 English' },
+            ],
+            lang,
+            (k) => {
+              setLangState(k as Lang);
+              void setLang(k as Lang);
+            },
+          )}
+          {selectorRow(
+            'contrast',
+            tr.settings.theme,
+            [
+              { key: 'dark', label: `🌙 ${tr.settings.dark}` },
+              { key: 'light', label: `☀️ ${tr.settings.light}` },
+            ],
+            mode,
+            (k) => {
+              const next = k as 'dark' | 'light';
+              setModeState(next);
+              setTheme(next);
+            },
+          )}
         </View>
 
         {/* Details */}
@@ -143,10 +235,10 @@ export default function ProfileScreen() {
             paddingHorizontal: 16,
           }}
         >
-          {row('at', 'Username', `@${profile.username}`)}
-          {row('shield-checkmark', 'Clan role', roleLabel(profile.role))}
-          {row('game-controller', 'COD Mobile UID', profile.cod_uid ?? 'Not set')}
-          {row('calendar', 'Joined', new Date(profile.created_at).toLocaleDateString())}
+          {row('at', tr.auth.username, `@${profile.username}`)}
+          {row('shield-checkmark', tr.profile.role, roleLabel(profile.role))}
+          {row('game-controller', tr.profile.uid, profile.cod_uid ?? '—')}
+          {row('calendar', tr.profile.joinedOn, new Date(profile.created_at).toLocaleDateString())}
         </View>
 
         <Text style={{ color: C.textFaint, fontSize: 11.5, textAlign: 'center', marginTop: 28, letterSpacing: 1 }}>
