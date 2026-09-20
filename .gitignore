@@ -45,3 +45,4 @@ example
 # scratch validation copies
 supabase/schema.x.sql
 supabase/schema-v2.x.sql
+.vercel
