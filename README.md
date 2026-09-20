@@ -1,10 +1,11 @@
 # UCHIHA Clan — Mobile Messenger
 
-A private, production-grade messaging app for the **UCHIHA** Call of Duty Mobile clan, built as a **real native mobile application** with **Expo (React Native)** — not a website, not a PWA, not a WebView wrapper.
+A private, production-grade messaging app for the **UCHIHA** Call of Duty Mobile clan, built as a **real native mobile application** with **Expo (React Native)** — iOS + Android.
 
-- **Platform targets:** iOS + Android (native builds via [EAS Build](https://docs.expo.dev/build/introduction/))
 - **Stack:** Expo SDK 57 · React Native 0.86 · expo-router · TypeScript · Supabase (Postgres, Auth, Realtime, Storage)
-- **Preview:** web preview runs via `bunx expo start --web` (the phone apps are the real product)
+- **Auth:** **Username + password** (secure Supabase Auth; passwords are hashed by Supabase, never stored or exposed by the app)
+- **Languages:** 🇮🇷 Persian (default, full RTL) + 🇬🇧 English — switchable in Profile → Settings
+- **Themes:** Premium dark UCHIHA theme (default) + light theme
 
 ---
 
@@ -12,33 +13,40 @@ A private, production-grade messaging app for the **UCHIHA** Call of Duty Mobile
 
 | Area | What's included |
 | --- | --- |
-| Auth | Sign up, login, logout, forgot/reset password, persistent sessions, protected screens |
-| Profiles | Username, display name, avatar (upload), bio, COD Mobile UID, clan role, online status, last seen, join date |
-| Roles | Owner → Leader → Co-Leader → Moderator → Member, **enforced by Postgres RLS**, not just UI |
-| DMs | Real-time 1-to-1 messaging, replies, edit, delete, reactions, typing indicator, read receipts, search, pagination |
-| Clan chat | Official clan-wide room with mentions (@username), pins, moderation controls |
-| Rooms | Clan groups (General, War Room, Ranked, Multiplayer, …) created by Owner/Leader/Co-Leader |
-| Realtime | Supabase Realtime for messages, typing, presence, read receipts, unread badges |
-| Notifications | Push registration + foreground handling (Android FCM / iOS APNs via EAS) |
-| Storage | Supabase bucket `avatars` for profile photos |
-
-Every feature is enforced server-side in [`supabase/schema.sql`](supabase/schema.sql) (RLS policies, triggers, RPCs).
+| Auth | Username/password registration + login, uniqueness + strength validation, confirm-password, auto-login, session persistence, logout |
+| Messaging | DMs, group rooms, official clan chat; replies, edit, delete, forward, reactions, emoji, built-in stickers, mentions, hashtags, pins, message search, chat search, unread counts, read receipts, timestamps, typing indicators, presence, last seen, drafts |
+| Media | Photos, videos, documents, audio — upload **with progress + cancel**, tap to open, size validation (50 MB), signed private URLs |
+| Voice messages | In-chat recording with live waveform, cancel, playback with seek + duration, mic permission handling |
+| Groups | Room membership with room-level roles; leaders manage info, promote/demote, remove members |
+| Announcements | Official channel — Title/body/priority (normal/important/critical)/pinned; only Leader+ can publish |
+| Clan War | Match scheduling, opponent, results (win/loss/draw), history — managed by leaders |
+| Friends | Requests (send/accept/reject), friend list with online status, start chat, remove |
+| Global search | Users, rooms, messages — privacy-respecting via a security-definer RPC |
+| Notifications | Push registration, in-app unread badges, deep-link taps into the exact chat |
+| Chat settings | Pin, mute, favorite, archive, clear, drafts — long-press any chat row |
+| Moderation | Reports (users/messages/rooms), mod review queue, mute/ban — all enforced server-side |
+| Realtime | Messages, reactions, typing, presence, read receipts, friend requests — live via Supabase |
 
 ---
 
-## 1. Backend setup (one time, ~2 minutes)
+## 1. Backend setup (one time)
 
-The app talks to a Supabase project. Credentials are already wired in `src/lib/supabase.ts` and overridable with `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+Credentials are wired in `src/lib/supabase.ts` (overridable via `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`).
 
-Apply the database schema:
+1. Open [supabase.com/dashboard](https://supabase.com/dashboard) → project `hizjqkuacgotbooelitd`.
+2. **SQL Editor → New query**:
+   - If starting fresh: run [`supabase/schema.sql`](supabase/schema.sql) **first**, then
+   - run [`supabase/schema-v2.sql`](supabase/schema-v2.sql) (additive migration: friends, reports, chat settings, room members, announcements, war, media columns, mute/ban, global search).
+   - Both files are idempotent — safe to re-run. No existing data is deleted.
+3. **Storage:** the v2 migration expects a **private** bucket named `media`:
+   Dashboard → Storage → New bucket → name `media`, **Public = OFF**.
+   (The `avatars` bucket from schema.sql is public and still used for profile photos.)
+4. **Auth → Providers → Email**: keep enabled (used internally with synthetic
+   `<username>@users.uchiha-messenger.com` addresses — users never see email). Disable
+   "Confirm email" so registration logs in immediately.
 
-1. Open your project at [supabase.com/dashboard](https://supabase.com/dashboard) → project `hizjqkuacgotbooelitd`.
-2. Go to **SQL Editor** → **New query**.
-3. Paste the entire contents of [`supabase/schema.sql`](supabase/schema.sql) and click **Run**.
-
-This creates: tables (`profiles`, `rooms`, `room_members`, `messages`, `dm_conversations`, `message_reactions`, `read_receipts`, `typing_state`, `blocked_users`), Row Level Security for every table, triggers (profile auto-creation, role changes), RPCs (start DM, mark read, unread counts), realtime publication, and the `avatars` storage bucket.
-
-> **First user = Owner.** The first profile created is granted the `owner` role and can promote everyone else from the Members tab. Everyone else joins as `member`.
+### First user = Owner
+Sign up, then Profile → **Claim Ownership** (one-time; the first member to claim leads UCHIHA).
 
 ---
 
@@ -49,83 +57,61 @@ bun install
 bun start            # or: bunx expo start
 ```
 
-Then:
-
-- **Android:** install *Expo Go* from the Play Store → scan the QR code in the terminal.
-- **iOS:** install *Expo Go* from the App Store → scan the QR code (or press `i` for the iOS simulator on a Mac).
-
-You will get the real native app experience (gestures, keyboard, haptics, notifications) instantly.
+- **Android:** *Expo Go* from the Play Store → scan the QR code.
+- **iOS:** *Expo Go* from the App Store → scan the QR code (or press `i` on a Mac).
 
 ---
 
 ## 3. Production builds (real installable apps)
 
-Install the EAS CLI once:
-
 ```bash
-bunx eas-cli login          # sign in with your Expo account (free)
+bunx eas-cli login
+bunx eas-cli build -p android --profile preview      # installable APK
+bunx eas-cli build -p android --profile production   # Play Store AAB
+bunx eas-cli build -p ios --profile production       # needs Apple Developer account
+bunx eas-cli update                                  # OTA JS update after release
 ```
 
-### Android (APK / AAB)
-
-```bash
-bunx eas-cli build -p android --profile preview      # installable APK for the clan
-bunx eas-cli build -p android --profile production   # AAB for Google Play
-```
-
-The first Android build works with zero extra setup. When the build finishes, EAS gives you a download link — send the APK to clan members and install it.
-
-### iOS
-
-```bash
-bunx eas-cli build -p ios --profile production
-```
-
-iOS requires one of:
-
-- **Apple Developer account** ($99/yr) — EAS handles signing; run `bunx eas-cli credentials` if it asks.
-- Or **TestFlight**: same build, then `bunx eas-cli submit -p ios` with your App Store Connect API key.
-
-### Push notifications (optional but recommended)
-
-To receive push notifications, add credentials with:
-
-```bash
-bunx eas-cli credentials          # Android: FCM key · iOS: APNs key (.p8)
-```
-
-Then rebuild. `expo-notifications` is already integrated in `src/app/_layout.tsx`.
+Push notifications require credentials: `bunx eas-cli credentials` (Android FCM key / iOS APNs .p8), then rebuild. All notification types (messages, mentions, replies, friend requests, announcements, role changes) are stored in the `notifications` table and delivered via push once configured.
 
 ---
 
-## 4. Updating the clan app after release
+## Internationalization (fa/en)
 
-```bash
-bunx eas-cli update                # OTA update: new JS instantly reaches all installed apps
-```
+- Dictionary-per-language under `src/i18n/` (`fa.ts`, `en.ts`); components call `t()` — **no hardcoded UI strings**.
+- Persian is the **default** language; selecting it flips the whole layout to **RTL** via `I18nManager.forceRTL` + app reload; English returns to LTR.
+- Chat bubbles, lists, and forms align correctly in both directions; dates/numbers render with locale-appropriate formatting.
 
-Native changes (new permissions, plugins) need a new store/APK build.
+## Security model
 
----
+- Passwords: handled exclusively by Supabase Auth (bcrypt server-side). The client never sees hashes; no plaintext is ever stored.
+- Authorization: every table is RLS-protected; role checks run in Postgres (`role_rank()`, `is_mod()`, room-role helpers). Mute/ban/report actions are security-definer RPCs that verify rank server-side — **client UI hiding is never the security boundary**.
+- Media: uploaded to a **private** `media` bucket under per-user folders; messages carry 1-hour signed URLs, so files are not publicly enumerable.
+- Search: `global_search()` is a security-definer function returning only usernames/display names/room names/message previews from rooms (DM contents are not exposed).
+- Moderation state (`user_moderation`) is readable only by the affected user and moderators.
 
 ## Project structure
 
 ```
 src/
   app/                    # expo-router routes
-    (auth)/               # welcome, login, sign-up, check-email
-    (tabs)/               # chats, members, profile
-    room/[id] dm/[id]     # chat screens
-    member/[id]           # member detail / moderation
-    new-room.tsx          # create room
-    edit-profile.tsx      # edit profile
-  components/             # Avatar, RoleBadge, MessageBubble, Composer, UI primitives
-  features/chat/          # shared chat experience + modals (reactions, pins, search)
-  hooks/                  # useMessages (realtime), useChats, useMembers, useRequireAuth
-  providers/              # session + presence provider
-  lib/                    # supabase client, theme, roles, types, time helpers
+    (auth)/               # welcome, login (username+password), sign-up
+    (tabs)/               # chats, friends, members, war, profile
+    dm/[id] room/[id]     # chat screens
+    room-info.tsx         # group management
+    announcements.tsx     # clan announcement channel
+    admin.tsx             # moderation panel (reports, mute, ban)
+    search.tsx            # global search
+    edit-profile.tsx new-room.tsx
+  components/             # bubbles, composer, voice player, media renderer, UI kit
+  features/chat/          # shared chat experience + modals
+  hooks/                  # useMessages, useChats, useFriends, useSocial, useChatSettings, useVoiceRecorder
+  providers/              # session + presence
+  i18n/                   # fa.ts, en.ts, runtime (RTL switching)
+  lib/                    # supabase, theme (dark/light), media, roles, types, time
 supabase/
-  schema.sql              # complete backend: tables, RLS, triggers, RPCs, storage
+  schema.sql              # base backend
+  schema-v2.sql           # additive v2 migration
 ```
 
 ## Roles & permissions (server-enforced)
@@ -133,15 +119,22 @@ supabase/
 | Action | Member | Moderator | Co-Leader | Leader | Owner |
 | --- | --- | --- | --- | --- | --- |
 | Send/react/edit own messages | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Delete own messages | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Delete any message | — | ✅ | ✅ | ✅ | ✅ |
-| Pin messages | — | ✅ | ✅ | ✅ | ✅ |
-| Create rooms | — | — | ✅ | ✅ | ✅ |
-| Change roles / moderate members | — | — | — | ✅ | ✅ |
+| Delete any room message / pin | — | ✅ | ✅ | ✅ | ✅ |
+| Mute users | — | ✅ | ✅ | ✅ | ✅ |
+| Ban users | — | — | ✅ | ✅ | ✅ |
+| Create rooms / publish announcements | — | — | ✅ | ✅ | ✅ |
+| Change clan roles | — | — | — | ✅ | ✅ |
 | Transfer ownership | — | — | — | — | ✅ |
+
+## Testing status
+
+Verified in this environment: TypeScript checks pass; the app bundle compiles and serves with all new screens/features present; Supabase REST rejects unauthenticated access correctly.
+
+**Not yet run end-to-end against a live database** (requires you to apply the two SQL files + create the `media` bucket): registration, login, messaging, media upload, voice, friends, reports, war/announcements flows, and the RTL flip on a physical device. The preview (web build of the same native code) renders the auth screens and chats UI.
 
 ## Troubleshooting
 
-- **"Could not find the table 'public.profiles'"** → you haven't run `supabase/schema.sql` yet (see step 1).
-- **Stuck on welcome screen after login** → make sure email confirmation is disabled or confirmed: Supabase Dashboard → Auth → Providers → Email.
-- **Reset password email goes to the wrong page** → set Site URL in Supabase Dashboard → Auth → URL Configuration to your reset screen URL.
+- **"Table not found" / RPC errors** → run `schema.sql` then `schema-v2.sql` (SQL Editor).
+- **Upload fails "Bucket not found"** → create the private `media` bucket (step 1.3).
+- **Registration says username taken** → usernames are unique; pick another.
+- **Language switch looks mixed until restart** → the RTL flip applies on reload; tap the language again if the native layout didn't refresh.

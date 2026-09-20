@@ -1,18 +1,21 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SessionProvider, useSession } from '@/providers/session';
+import { initI18n, setLang } from '@/i18n';
+import { setTheme } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
 import { C } from '@/lib/theme';
 
 SplashScreen.preventAutoHideAsync();
 setTimeout(() => void SplashScreen.hideAsync(), 400);
 
-/** Registers push permissions/tokens and handles notification taps. */
+/** Registers push permissions/tokens and handles notification taps (deep links). */
 function PushRegistrar() {
   const { session } = useSession();
 
@@ -52,9 +55,11 @@ function PushRegistrar() {
       const data = response.notification.request.content.data as {
         conversation_id?: string;
         room_id?: string;
+        announcement_id?: string;
       };
       if (data?.conversation_id) router.push(`/dm/${data.conversation_id}`);
       else if (data?.room_id) router.push(`/room/${data.room_id}`);
+      else if (data?.announcement_id) router.push('/announcements');
     });
 
     return () => {
@@ -67,6 +72,22 @@ function PushRegistrar() {
 }
 
 export default function RootLayout() {
+  const [ready, setReady] = useState(false);
+
+  // Restore language + theme before first paint of routes.
+  useEffect(() => {
+    void (async () => {
+      const lang = await initI18n();
+      const storedMode = await AsyncStorage.getItem('app.theme');
+      setTheme(storedMode === 'light' ? 'light' : 'dark');
+      // Align native RTL with the restored language (no reload on cold start).
+      await setLang(lang).catch(() => undefined);
+      setReady(true);
+    })();
+  }, []);
+
+  if (!ready) return null;
+
   return (
     <SessionProvider>
       <StatusBar style="light" />
@@ -78,13 +99,18 @@ export default function RootLayout() {
         }}
       >
         <Stack.Screen name="index" />
+        <Stack.Screen name="onboarding" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="room/[id]" />
         <Stack.Screen name="dm/[id]" />
         <Stack.Screen name="member/[id]" />
+        <Stack.Screen name="room-info" />
         <Stack.Screen name="edit-profile" />
         <Stack.Screen name="new-room" />
+        <Stack.Screen name="search" />
+        <Stack.Screen name="admin" />
+        <Stack.Screen name="announcements" />
       </Stack>
     </SessionProvider>
   );

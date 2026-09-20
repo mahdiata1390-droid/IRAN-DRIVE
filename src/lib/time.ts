@@ -59,3 +59,21 @@ export function dayLabel(iso: string): string {
     year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric',
   });
 }
+
+/** Relative label like "5m ago", "2h ago", "3d ago". */
+export function relativeTime(iso: string): string {
+  const diffMin = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (diffMin < 1) return 'now';
+  if (diffMin < 60) return `${diffMin}m`;
+  const hours = Math.floor(diffMin / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d`;
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+/** "Mar 4, 20:00" for war events. */
+export function dayTime(iso: string): string {
+  const d = new Date(iso);
+  return `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ${clockTime(iso)}`;
+}

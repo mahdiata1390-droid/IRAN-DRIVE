@@ -1,6 +1,8 @@
 import { memo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Avatar } from '@/components/avatar';
+import { MediaBody } from '@/components/media-bubble';
+import { t } from '@/i18n';
 import { C, R } from '@/lib/theme';
 import { clockTime } from '@/lib/time';
 import type { Message, Profile } from '@/lib/types';
@@ -12,15 +14,22 @@ export interface ReactionGroup {
 }
 
 function MentionText({ content, usernames }: { content: string; usernames: Set<string> }) {
-  const parts = content.split(/(@[a-zA-Z0-9_]+)/g);
+  const parts = content.split(/(@[a-zA-Z0-9_]+|#\w+)/g);
   return (
     <Text style={{ color: C.text, fontSize: 15.5, lineHeight: 21 }}>
       {parts.map((part, i) => {
         const isMention = part.startsWith('@') && usernames.has(part.slice(1).toLowerCase());
+        const isHashtag = part.startsWith('#') && part.length > 1;
         return (
           <Text
             key={i}
-            style={isMention ? { color: C.red, fontWeight: '700', backgroundColor: C.redSoft } : undefined}
+            style={
+              isMention
+                ? { color: C.red, fontWeight: '700', backgroundColor: C.redSoft }
+                : isHashtag
+                  ? { color: C.blue, fontWeight: '600' }
+                  : undefined
+            }
           >
             {part}
           </Text>
@@ -53,6 +62,9 @@ export const MessageBubble = memo(function MessageBubble({
   onReactionPress: (emoji: string) => void;
   usernames: Set<string>;
 }) {
+  const tr = t();
+  const timeColor = isMine ? 'rgba(255,255,255,0.55)' : C.textFaint;
+
   if (message.deleted_at) {
     return (
       <View style={{ paddingHorizontal: 14, marginVertical: 2 }}>
@@ -69,7 +81,7 @@ export const MessageBubble = memo(function MessageBubble({
           }}
         >
           <Text style={{ color: C.textFaint, fontStyle: 'italic', fontSize: 14 }}>
-            Message deleted
+            {tr.chat.deleted}
           </Text>
         </View>
       </View>
@@ -78,6 +90,8 @@ export const MessageBubble = memo(function MessageBubble({
 
   const mineBg = { backgroundColor: C.bubbleMine, borderColor: C.bubbleMineBorder };
   const otherBg = { backgroundColor: C.bubbleOther, borderColor: C.bubbleOtherBorder };
+  const hasMedia = message.media_type != null && message.media_url != null;
+  const hasText = message.content.length > 0;
 
   return (
     <View style={{ paddingHorizontal: 14, marginVertical: 2 }}>
@@ -100,8 +114,8 @@ export const MessageBubble = memo(function MessageBubble({
               maxWidth: '80%',
               borderRadius: 16,
               borderWidth: 1,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
+              paddingHorizontal: hasMedia && !hasText ? 6 : 12,
+              paddingVertical: hasMedia && !hasText ? 6 : 8,
               opacity: pressed ? 0.85 : 1,
             },
             isMine ? mineBg : otherBg,
@@ -126,28 +140,37 @@ export const MessageBubble = memo(function MessageBubble({
               }}
             >
               <Text style={{ color: C.red, fontSize: 11.5, fontWeight: '700' }}>
-                {isMine
-                  ? 'You'
-                  : (replyTo.sender?.display_name ?? replyTo.sender?.username ?? 'Member')}
+                {isMine ? tr.common.you : (replyTo.sender?.display_name ?? replyTo.sender?.username ?? '')}
               </Text>
               <Text numberOfLines={2} style={{ color: C.textDim, fontSize: 12.5 }}>
-                {replyTo.deleted_at ? 'Message deleted' : replyTo.content}
+                {replyTo.deleted_at
+                  ? tr.chat.deleted
+                  : replyTo.media_type && !replyTo.content
+                    ? `📎 ${replyTo.media_type}`
+                    : replyTo.content}
               </Text>
             </View>
           ) : null}
 
-          <MentionText content={message.content} usernames={usernames} />
+          {message.forwarded_from ? (
+            <Text style={{ color: C.textDim, fontSize: 11.5, fontStyle: 'italic', marginBottom: 2 }}>
+              ↪ {tr.chat.forwarded} · {message.forwarded_from}
+            </Text>
+          ) : null}
+
+          {hasMedia ? <MediaBody msg={message} mine={isMine} /> : null}
+          {hasText ? <MentionText content={message.content} usernames={usernames} /> : null}
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
-            <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 10.5 }}>
+            <Text style={{ color: timeColor, fontSize: 10.5 }}>
               {clockTime(message.created_at)}
             </Text>
             {message.edited_at ? (
-              <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10.5 }}>(edited)</Text>
+              <Text style={{ color: timeColor, fontSize: 10.5 }}>({tr.chat.edited})</Text>
             ) : null}
             {isMine && seen !== undefined ? (
-              <Text style={{ color: seen ? '#4ADE80' : 'rgba(255,255,255,0.45)', fontSize: 10.5 }}>
-                {seen ? 'Seen' : 'Sent'}
+              <Text style={{ color: seen ? '#4ADE80' : timeColor, fontSize: 10.5 }}>
+                {seen ? tr.chat.seen : tr.chat.sent}
               </Text>
             ) : null}
             {message.pinned ? (
