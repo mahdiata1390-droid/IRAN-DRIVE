@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "UCHIHA Clan",
+    "slug": "uchiha-clan",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "uchihaclan",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0A0A0B",
+    "ios": {
+      "icon": "./assets/expo.icon",
+      "supportsTablet": false,
+      "bundleIdentifier": "com.uchihaclan.messenger",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "UCHIHA Clan needs photo access to set your avatar.",
+        "NSCameraUsageDescription": "UCHIHA Clan needs camera access to take a profile photo."
+      }
+    },
+    "android": {
+      "package": "com.uchihaclan.messenger",
+      "adaptiveIcon": {
+        "backgroundColor": "#0A0A0B",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "spa",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0A0A0B",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 120
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "UCHIHA Clan needs photo access to set your avatar."
+        }
+      ]
+    ],
+    "experiments": {
+      "reactCompiler": true
+    }
+  }
+}
