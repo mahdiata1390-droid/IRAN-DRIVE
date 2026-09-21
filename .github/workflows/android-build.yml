@@ -9,11 +9,13 @@ on:
       - 'app.json'
       - 'package.json'
       - 'scripts/patch-android-signing.js'
+      - 'scripts/patch-android-build-env.js'
       - '.github/workflows/android-build.yml'
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     permissions:
       contents: write
     steps:
@@ -32,6 +34,9 @@ jobs:
       - name: Generate native android project
         run: bunx expo prebuild -p android --no-install
 
+      - name: Tune build memory + ABIs
+        run: node scripts/patch-android-build-env.js
+
       - name: Configure release signing
         run: node scripts/patch-android-signing.js
         env:
@@ -44,7 +49,7 @@ jobs:
 
       - name: Build release APK
         working-directory: android
-        run: ./gradlew assembleRelease --no-daemon
+        run: ./gradlew assembleRelease --no-daemon --max-workers=2 --stacktrace
 
       - name: Copy APK to workspace root
         run: cp android/app/build/outputs/apk/release/app-release.apk uchiha-clan.apk
