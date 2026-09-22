@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Link, Stack, router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/supabase';
 import { Button, Input } from '@/components/ui';
+import { useSession } from '@/providers/session';
 import { t } from '@/i18n';
 import { C } from '@/lib/theme';
 
@@ -11,6 +12,7 @@ const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
 
 export default function SignUpScreen() {
   const tr = t();
+  const { session, profile } = useSession();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -21,6 +23,12 @@ export default function SignUpScreen() {
   const usernameOk = USERNAME_RE.test(username);
   const passwordOk = password.length >= 8 && /[a-zA-Z]/.test(password) && /\d/.test(password);
   const confirmOk = confirm.length > 0 && confirm === password;
+
+  // An already-signed-in user (e.g. reload right after signup) is forwarded
+  // into the app instead of being stranded on this screen.
+  useEffect(() => {
+    if (session && profile) router.replace('/(tabs)/chats');
+  }, [session, profile]);
 
   const submit = async () => {
     setError(null);

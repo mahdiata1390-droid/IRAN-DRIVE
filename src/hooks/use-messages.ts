@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { resolveChannelTopic, supabase } from '@/lib/supabase';
 import type { Message, Reaction } from '@/lib/types';
 
 export interface ChatScope {
@@ -96,7 +96,11 @@ export function useMessages(scope: ChatScope, myId: string | null) {
       }
     })();
 
-    const channel = supabase.channel(`${scope.kind}:${scope.id}`, {
+    // Attach ALL listeners before subscribe(): supabase-js throws
+    // "cannot add `postgres_changes` callbacks ... after `subscribe()`" once the
+    // channel is joining/joined.
+    const topic = resolveChannelTopic(`${scope.kind}:${scope.id}`);
+    const channel = supabase.channel(topic, {
       config: { presence: { key: myIdRef.current ?? 'anon' } },
     });
 
@@ -159,8 +163,7 @@ export function useMessages(scope: ChatScope, myId: string | null) {
       })
       .on('presence', { event: 'sync' }, () => {
         setOnlineCount(Object.keys(channel.presenceState()).length);
-      })
-      .subscribe();
+      });
 
     if (scope.kind === 'dm') {
       channel.on(
@@ -177,6 +180,8 @@ export function useMessages(scope: ChatScope, myId: string | null) {
         },
       );
     }
+
+    channel.subscribe();
 
     channelRef.current = channel;
     return () => {

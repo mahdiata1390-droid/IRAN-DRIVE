@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { resolveChannelTopic, supabase } from '@/lib/supabase';
 import type { Profile } from '@/lib/types';
 import { roleRank } from '@/lib/roles';
 
@@ -21,7 +21,11 @@ export function useMembers() {
 
   useEffect(() => {
     void refresh();
-    const channel = supabase.channel('members:watch');
+    // useMembers is mounted by the members tab and by dm/member/room screens, so
+    // the topic is reused across concurrent mounts — resolveChannelTopic adds a
+    // suffix when the topic is still taken (avoids "cannot add ... after
+    // subscribe()" from supabase-js).
+    const channel = supabase.channel(resolveChannelTopic('members:watch'));
     channel
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
         void refresh();

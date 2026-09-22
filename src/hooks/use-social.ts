@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { resolveChannelTopic, supabase } from '@/lib/supabase';
 import type { Announcement, FriendRequestRow, FriendRow, ReportRow, WarEvent } from '@/lib/types';
 
 export function useFriends(myId: string | null) {
@@ -22,7 +22,7 @@ export function useFriends(myId: string | null) {
     void refresh();
     if (!myId) return;
     const sub = supabase
-      .channel(`friends:${myId}`)
+      .channel(resolveChannelTopic(`friends:${myId}`))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'friend_requests' }, () => {
         void refresh();
       })

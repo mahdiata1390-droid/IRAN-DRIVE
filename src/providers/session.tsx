@@ -8,13 +8,14 @@ import {
   useState,
 } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { resolveChannelTopic, supabase } from '@/lib/supabase';
 import type { Profile } from '@/lib/types';
 
 interface SessionContextValue {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  profileLoading: boolean;
   onlineIds: Set<string>;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -34,12 +35,25 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
   const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchProfile = useCallback(async (userId: string) => {
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
-    if (data) setProfile(data as Profile);
+    setProfileLoading(true);
+    // The profile row is created by a database trigger (handle_new_user) right
+    // after signup; the row can take a moment to become visible to the new
+    // session, so retry a few times before treating it as missing.
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+      if (data) {
+        setProfile(data as Profile);
+        setProfileLoading(false);
+        return;
+      }
+      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 800));
+    }
+    setProfileLoading(false);
   }, []);
 
   const refreshProfile = useCallback(async () => {
@@ -60,9 +74,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       setSession(nextSession);
       if (event === 'SIGNED_OUT') {
         setProfile(null);
+        setProfileLoading(false);
         setOnlineIds(new Set());
-        presenceChannelRef.current?.unsubscribe();
+        // removeChannel (not bare unsubscribe) also tears the channel down on the
+        // client so the topic is free again for the next session.
+        const presence = presenceChannelRef.current;
         presenceChannelRef.current = null;
+        if (presence) void supabase.removeChannel(presence);
       } else if (nextSession && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
         void fetchProfile(nextSession.user.id);
       }
@@ -76,7 +94,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     if (!userId) return;
 
     const profileSub = supabase
-      .channel(`profile:${userId}`)
+      .channel(resolveChannelTopic(`profile:${userId}`))
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
@@ -88,7 +106,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       void supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', userId);
     }, HEARTBEAT_MS);
 
-    const channel = supabase.channel('clan:online', { config: { presence: { key: userId } } });
+    const channel = supabase.channel(resolveChannelTopic('clan:online'), {
+      config: { presence: { key: userId } },
+    });
     channel
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
@@ -112,8 +132,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo<SessionContextValue>(
-    () => ({ session, profile, loading, onlineIds, refreshProfile, signOut }),
-    [session, profile, loading, onlineIds, refreshProfile, signOut],
+    () => ({ session, profile, loading, profileLoading, onlineIds, refreshProfile, signOut }),
+    [session, profile, loading, profileLoading, onlineIds, refreshProfile, signOut],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
