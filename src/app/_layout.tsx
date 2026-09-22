@@ -7,6 +7,7 @@ import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SessionProvider, useSession } from '@/providers/session';
+import { AppErrorBoundary } from '@/components/app-error-boundary';
 import { initI18n, setLang } from '@/i18n';
 import { setTheme } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
@@ -89,9 +90,10 @@ export default function RootLayout() {
   if (!ready) return null;
 
   return (
-    <SessionProvider>
-      <StatusBar style="light" />
-      <PushRegistrar />
+    <AppErrorBoundary>
+      <SessionProvider>
+        <StatusBar style="light" />
+        <PushRegistrar />
       <Stack
         screenOptions={{
           headerShown: false,
@@ -111,7 +113,8 @@ export default function RootLayout() {
         <Stack.Screen name="search" />
         <Stack.Screen name="admin" />
         <Stack.Screen name="announcements" />
-      </Stack>
-    </SessionProvider>
+        </Stack>
+      </SessionProvider>
+    </AppErrorBoundary>
   );
 }
