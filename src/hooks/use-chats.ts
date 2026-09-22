@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { resolveChannelTopic, supabase } from '@/lib/supabase';
 import type { DmListItem, Room, UnreadRow } from '@/lib/types';
 
 export function useChats() {
@@ -29,7 +29,12 @@ export function useChats() {
   useEffect(() => {
     void refresh();
     // Any visible message change refreshes badges/inbox (debounced).
-    const channel = supabase.channel('chats:watch');
+    // NOTE: this hook is mounted by BOTH the tabs layout (unread badge) and the
+    // chats screen, so the topic must be unique per effect run — a shared fixed
+    // topic would make the second mount grab the already-subscribed channel and
+    // supabase-js would throw "cannot add `postgres_changes` callbacks ... after
+    // `subscribe()`".
+    const channel = supabase.channel(resolveChannelTopic('chats:watch', { unique: true }));
     channel
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
         if (refreshTimer.current) clearTimeout(refreshTimer.current);
