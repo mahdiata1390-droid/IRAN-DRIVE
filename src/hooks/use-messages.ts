@@ -9,7 +9,11 @@ export interface ChatScope {
 
 const PAGE_SIZE = 50;
 const MESSAGE_SELECT =
-  '*, sender:profiles(*), reply_to:messages!messages_reply_to_id_fkey(id, content, sender_id, deleted_at, sender:profiles(display_name, username))';
+  // Both embeds are disambiguated with FK hints: `messages.sender_id` has a
+  // many-to-many path to profiles via reactions, which made the plain
+  // `sender:profiles(*)` embed ambiguous → PostgREST answered HTTP 300
+  // (PGRST201) and every message insert silently failed on web.
+  '*, sender:profiles!messages_sender_id_fkey(*), reply_to:messages(id, content, sender_id, deleted_at, sender:profiles!messages_sender_id_fkey(display_name, username))';
 
 export function useMessages(scope: ChatScope, myId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);

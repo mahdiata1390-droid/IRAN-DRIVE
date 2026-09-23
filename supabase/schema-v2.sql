@@ -29,12 +29,11 @@ create index if not exists room_members_user_idx on public.room_members (user_id
 alter table public.room_members enable row level security;
 
 drop policy if exists "members read own memberships" on public.room_members;
+-- Same 42P17 hazard as dm_participants: never query the table inside its own
+-- SELECT policy. Use the security-definer helper for co-member reads.
 create policy "members read own memberships"
   on public.room_members for select to authenticated
-  using (user_id = auth.uid() or exists (
-    select 1 from public.room_members m2
-    where m2.room_id = room_members.room_id and m2.user_id = auth.uid()
-  ));
+  using (user_id = auth.uid() or public.my_room_role(room_id) is not null);
 
 drop policy if exists "creators join own room" on public.room_members;
 create policy "creators join own room"
@@ -64,12 +63,7 @@ create policy "leaders manage room membership"
   on public.room_members for update to authenticated
   using (
     public.role_rank(public.my_role()) >= 3
-    or exists (
-      select 1 from public.room_members m3
-      where m3.room_id = room_members.room_id
-        and m3.user_id = auth.uid()
-        and m3.room_role in ('owner','admin')
-    )
+    or public.can_moderate_room(room_id)
   )
   with check (true);
 
@@ -78,12 +72,7 @@ create policy "leaders add members"
   on public.room_members for insert to authenticated
   with check (
     public.role_rank(public.my_role()) >= 3
-    or exists (
-      select 1 from public.room_members m4
-      where m4.room_id = room_members.room_id
-        and m4.user_id = auth.uid()
-        and m4.room_role in ('owner','admin')
-    )
+    or public.can_moderate_room(room_id)
   );
 
 drop policy if exists "leaders remove members" on public.room_members;
@@ -92,12 +81,7 @@ create policy "leaders remove members"
   using (
     user_id = auth.uid()
     or public.role_rank(public.my_role()) >= 3
-    or exists (
-      select 1 from public.room_members m5
-      where m5.room_id = room_members.room_id
-        and m5.user_id = auth.uid()
-        and m5.room_role in ('owner','admin')
-    )
+    or public.can_moderate_room(room_id)
   );
 
 -- ============================================================================

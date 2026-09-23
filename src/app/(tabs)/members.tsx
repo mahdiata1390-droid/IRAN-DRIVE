@@ -10,6 +10,7 @@ import { useMembers } from '@/hooks/use-members';
 import { useRequireAuth } from '@/hooks/use-require-auth';
 import { useSession } from '@/providers/session';
 import { supabase } from '@/lib/supabase';
+import { showAlert } from '@/lib/alert';
 import { C, R } from '@/lib/theme';
 import { lastSeenLabel } from '@/lib/time';
 import type { Profile } from '@/lib/types';
@@ -42,7 +43,7 @@ export default function MembersScreen() {
       if (error) throw error;
       router.push(`/dm/${data}`);
     } catch (e) {
-      console.warn('create_dm failed', e);
+      showAlert('Chat unavailable', e instanceof Error ? e.message : 'Could not open this chat.');
     } finally {
       setOpenning(null);
     }
