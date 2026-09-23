@@ -23,6 +23,7 @@ export function useMessages(scope: ChatScope, myId: string | null) {
   const [hasMore, setHasMore] = useState(true);
   const [typingNames, setTypingNames] = useState<string[]>([]);
   const [partnerLastRead, setPartnerLastRead] = useState<string | null>(null);
+  const [myLastReadAt, setMyLastReadAt] = useState<string | null>(null);
   const [onlineCount, setOnlineCount] = useState(0);
 
   const messageIdsRef = useRef<Set<string>>(new Set());
@@ -92,10 +93,11 @@ export function useMessages(scope: ChatScope, myId: string | null) {
           .select('user_id, last_read_at')
           .eq('conversation_id', scope.id);
         if (!cancelled && readState) {
-          const other = (readState as { user_id: string; last_read_at: string }[]).find(
-            (r) => r.user_id !== myIdRef.current,
-          );
+          const rows = readState as { user_id: string; last_read_at: string }[];
+          const other = rows.find((r) => r.user_id !== myIdRef.current);
           if (other) setPartnerLastRead(other.last_read_at);
+          const mine = rows.find((r) => r.user_id === myIdRef.current);
+          if (mine) setMyLastReadAt(mine.last_read_at);
         }
       }
     })();
@@ -272,6 +274,35 @@ export function useMessages(scope: ChatScope, myId: string | null) {
     [myId, scope.id, scopeColumn, mergeMessage],
   );
 
+  /** Forwards an existing message (text or media) into this chat as a new one. */
+  const forward = useCallback(
+    async (source: Message, target?: ChatScope) => {
+      if (!myId) return;
+      const dest = target ?? scope;
+      const destColumn = dest.kind === 'room' ? 'room_id' : 'conversation_id';
+      const insert: Record<string, unknown> = {
+        [destColumn]: dest.id,
+        sender_id: myId,
+        content: source.content,
+        forwarded_from: source.sender?.display_name ?? null,
+        media_type: source.media_type,
+        media_url: source.media_url,
+        media_name: source.media_name,
+        media_size: source.media_size,
+        media_duration_ms: source.media_duration_ms,
+        media_waveform: source.media_waveform,
+      };
+      const { data, error } = await supabase
+        .from('messages')
+        .insert(insert)
+        .select(MESSAGE_SELECT)
+        .single();
+      if (error) throw error;
+      if (data && !target) mergeMessage(data as Message);
+    },
+    [myId, scope, scopeColumn, mergeMessage],
+  );
+
   /** Sends a media message (already uploaded to storage) or a text sticker. */
   const sendMedia = useCallback(
     async (media: {
@@ -371,6 +402,7 @@ export function useMessages(scope: ChatScope, myId: string | null) {
 
   const markRead = useCallback(() => {
     if (!myId) return;
+    setMyLastReadAt(new Date().toISOString());
     void (scope.kind === 'room'
       ? supabase.rpc('mark_room_read', { p_room_id: scope.id })
       : supabase.rpc('mark_dm_read', { p_conversation_id: scope.id }));
@@ -399,10 +431,12 @@ export function useMessages(scope: ChatScope, myId: string | null) {
     hasMore,
     typingNames,
     partnerLastRead,
+    myLastReadAt,
     onlineCount,
     pinnedMessages,
     send,
     sendMedia,
+    forward,
     edit,
     remove,
     toggleReaction,

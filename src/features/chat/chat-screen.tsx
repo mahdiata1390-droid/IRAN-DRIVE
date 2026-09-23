@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Composer } from '@/components/composer';
 import { MessageBubble, type ReactionGroup } from '@/components/message-bubble';
-import { MessageActionsModal, PinnedModal, SearchModal } from '@/features/chat/chat-modals';
+import { ForwardModal, MessageActionsModal, PinnedModal, SearchModal } from '@/features/chat/chat-modals';
 import { EmptyState, Spinner } from '@/components/ui';
 import { useMessages, type ChatScope } from '@/hooks/use-messages';
 import { useSession } from '@/providers/session';
@@ -47,9 +47,11 @@ export function ChatScreen({
     hasMore,
     typingNames,
     partnerLastRead,
+    myLastReadAt,
     pinnedMessages,
     send,
     sendMedia,
+    forward,
     edit,
     remove,
     toggleReaction,
@@ -65,6 +67,9 @@ export function ChatScreen({
   const [actionsFor, setActionsFor] = useState<Message | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [pinnedOpen, setPinnedOpen] = useState(false);
+  const [forwardTarget, setForwardTarget] = useState<Message | null>(null);
+  const listRef = useRef<FlatList<Message> | null>(null);
+  const [atBottom, setAtBottom] = useState(true);
   const tr = t();
 
   const myRole = profile?.role ?? 'member';
@@ -82,6 +87,12 @@ export function ChatScreen({
   );
 
   const data = useMemo(() => [...messages].reverse(), [messages]);
+
+  // Index (in `data`) of the first message newer than my last read → unread divider.
+  const firstUnreadIndex = useMemo(() => {
+    if (!myLastReadAt) return -1;
+    return data.findIndex((m) => m.created_at > myLastReadAt && m.sender_id !== myId);
+  }, [data, myLastReadAt, myId]);
 
   const notifyTypingForMe = useMemo(() => {
     const fn = notifyTyping(profile?.display_name ?? 'someone');
@@ -151,37 +162,37 @@ export function ChatScreen({
   const handleDelete = useCallback(
     (m: Message) => {
       if (Platform.OS === 'web') {
-        // window.alert/alert-confirm: browsers have no native 2-button Alert.
-        if (window.confirm('Delete this message? This cannot be undone.')) {
+        // window.confirm: browsers have no native 2-button Alert.
+        if (window.confirm(`${tr.chat.deleteDialogTitle}? ${tr.chat.deleteDialogBody}`)) {
           void remove(m.id).catch((e) =>
-            showAlert('Delete failed', e instanceof Error ? e.message : 'Try again.'),
+            showAlert(tr.chat.deleteFailed, e instanceof Error ? e.message : tr.common.retry),
           );
         }
         return;
       }
-      Alert.alert('Delete message', 'This cannot be undone.', [
-        { text: 'Cancel', style: 'cancel' },
+      Alert.alert(tr.chat.deleteDialogTitle, tr.chat.deleteDialogBody, [
+        { text: tr.common.cancel, style: 'cancel' },
         {
-          text: 'Delete',
+          text: tr.common.delete,
           style: 'destructive',
           onPress: () => {
             void remove(m.id).catch((e) =>
-              showAlert('Delete failed', e instanceof Error ? e.message : 'Try again.'),
+              showAlert(tr.chat.deleteFailed, e instanceof Error ? e.message : tr.common.retry),
             );
           },
         },
       ]);
     },
-    [remove],
+    [remove, tr],
   );
 
   const handleTogglePin = useCallback(
     (m: Message) => {
       void togglePin(m.id).catch((e) =>
-        showAlert('Pin failed', e instanceof Error ? e.message : 'Try again.'),
+        showAlert(tr.chat.pinFailed, e instanceof Error ? e.message : tr.common.retry),
       );
     },
-    [togglePin],
+    [togglePin, tr],
   );
 
   const groupsFor = useCallback(
@@ -212,6 +223,15 @@ export function ChatScreen({
           : undefined;
       return (
         <View>
+          {index === firstUnreadIndex ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 16 }}>
+              <View style={{ flex: 1, height: 1, backgroundColor: C.redBorder }} />
+              <Text style={{ color: C.red, fontSize: 11, fontWeight: '800', letterSpacing: 1 }}>
+                {tr.chat.newMessages}
+              </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: C.redBorder }} />
+            </View>
+          ) : null}
           {showDay ? (
             <View style={{ alignItems: 'center', paddingVertical: 12 }}>
               <Text
@@ -242,7 +262,7 @@ export function ChatScreen({
         </View>
       );
     },
-    [data, myId, scope.kind, partnerLastRead, memberById, messages, groupsFor, toggleReaction, usernames],
+    [data, myId, scope.kind, partnerLastRead, memberById, messages, groupsFor, toggleReaction, usernames, firstUnreadIndex, tr],
   );
 
   const lastMyMessageSeen =
@@ -296,9 +316,16 @@ export function ChatScreen({
           <Spinner />
         ) : (
           <FlatList
+            ref={listRef}
             data={data}
             inverted
             keyExtractor={(m) => m.id}
+            onScroll={(e) => {
+              const { contentOffset } = e.nativeEvent;
+              setAtBottom(contentOffset.y < 120);
+            }}
+            scrollEventThrottle={100}
+            maintainVisibleContentPosition={{ minIndexForVisible: 1 }}
             renderItem={renderItem}
             onEndReached={hasMore ? loadMore : undefined}
             onEndReachedThreshold={0.6}
@@ -312,7 +339,7 @@ export function ChatScreen({
                     ⛩ UCHIHA CLAN
                   </Text>
                   <Text style={{ color: C.textFaint, fontSize: 11.5, marginTop: 2 }}>
-                    {tr.chat.pinnedTitle === 'Pinned message' ? 'Beginning of chat history' : 'ابتدای تاریخچه گفتگو'}
+                    {tr.chat.beginningOfHistory}
                   </Text>
                 </View>
               ) : null
@@ -320,8 +347,8 @@ export function ChatScreen({
             ListEmptyComponent={
               <EmptyState
                 icon="⚔️"
-                title="No messages yet"
-                subtitle="Start the conversation — your clan is listening."
+                title={tr.chat.noMessagesTitle}
+                subtitle={tr.chat.noMessagesSubtitle}
               />
             }
           />
@@ -338,17 +365,45 @@ export function ChatScreen({
               paddingBottom: 2,
             }}
           >
-            Seen
+            {tr.chat.seen}
           </Text>
+        ) : null}
+
+        {/* Scroll-to-latest button (inverted list: latest = offset 0) */}
+        {!atBottom ? (
+          <Pressable
+            onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+            style={({ pressed }) => ({
+              position: 'absolute',
+              bottom: 86,
+              right: 18,
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: C.bgElevated,
+              borderWidth: 1,
+              borderColor: C.border,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: pressed ? 0.7 : 1,
+              shadowColor: '#000',
+              shadowOpacity: 0.35,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 3 },
+              elevation: 5,
+            })}
+          >
+            <Ionicons name="chevron-down" size={22} color={C.red} />
+          </Pressable>
         ) : null}
 
         {/* Typing indicator */}
         {typingNames.length > 0 ? (
           <View style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
             <Text style={{ color: C.textFaint, fontSize: 12.5, fontStyle: 'italic' }}>
-              {typingNames.slice(0, 2).join(', ')}
+              {typingNames.slice(0, 2).join('، ')}
               {typingNames.length > 2 ? ` +${typingNames.length - 2}` : ''}{' '}
-              {typingNames.length === 1 ? 'is' : 'are'} typing…
+              {typingNames.length === 1 ? tr.chat.typingOne : tr.chat.typingMany}
             </Text>
           </View>
         ) : null}
@@ -366,12 +421,34 @@ export function ChatScreen({
         />
       </KeyboardAvoidingView>
 
+      <ForwardModal
+        visible={forwardTarget !== null}
+        onClose={() => setForwardTarget(null)}
+        onForward={(target) => {
+          if (!forwardTarget) return;
+          const src = forwardTarget;
+          setForwardTarget(null);
+          void (async () => {
+            try {
+              if (target.kind === 'room') {
+                await forward(src, { kind: 'room', id: target.id });
+              } else {
+                await forward(src, { kind: 'dm', id: target.id });
+              }
+              showAlert(tr.chat.forwardSent, target.label);
+            } catch (e) {
+              showAlert(tr.chat.forwardFailed, e instanceof Error ? e.message : tr.common.retry);
+            }
+          })();
+        }}
+      />
       <MessageActionsModal
         visible={actionsFor !== null}
         message={actionsFor}
         isMine={actionsFor?.sender_id === myId}
         canModerate={isRoom && canModerate(myRole)}
         canPin={isRoom && canPin(myRole)}
+        onForwardMessage={(m) => setForwardTarget(m)}
         onClose={() => setActionsFor(null)}
         onReply={(m) => {
           setReplyTo(m);
