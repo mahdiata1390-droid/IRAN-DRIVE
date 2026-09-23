@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '@/components/avatar';
 import { EmptyState, Spinner } from '@/components/ui';
 import { useChats } from '@/hooks/use-chats';
+import { useNotifications } from '@/hooks/use-notifications';
 import { useRequireAuth } from '@/hooks/use-require-auth';
 import { useChatSettings, scopeKey } from '@/hooks/use-chat-settings';
 import { useSession } from '@/providers/session';
@@ -22,6 +23,7 @@ export default function ChatsScreen() {
   const { session } = useSession();
   const insets = useSafeAreaInsets();
   const { rooms, dms, unreadByChat, loading, refresh } = useChats();
+  const { unreadCount: notifUnread } = useNotifications(session?.user.id ?? null, { live: false });
   const { get, update } = useChatSettings(session?.user.id ?? null);
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
@@ -278,6 +280,41 @@ export default function ChatsScreen() {
             </Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
+            <Link href="/notifications" asChild>
+              <Pressable
+                style={({ pressed }) => ({
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: C.bgCard,
+                  borderWidth: 1,
+                  borderColor: C.border,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: pressed ? 0.7 : 1,
+                })}
+              >
+                <Ionicons name="notifications-outline" size={20} color={C.textDim} />
+                {notifUnread > 0 ? (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: 4,
+                      right: 4,
+                      minWidth: 16,
+                      height: 16,
+                      borderRadius: 8,
+                      backgroundColor: C.red,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      paddingHorizontal: 3,
+                    }}
+                  >
+                    <Text style={{ color: '#fff', fontSize: 9.5, fontWeight: '800' }}>{notifUnread}</Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            </Link>
             <Link href="/search" asChild>
               <Pressable
                 style={({ pressed }) => ({

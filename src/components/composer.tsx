@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, Text, TextInput, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '@/components/avatar';
+import { GifPicker } from '@/components/gif-picker';
 import { t } from '@/i18n';
+import { showAlert } from '@/lib/alert';
 import { C, R } from '@/lib/theme';
 import { kindFromMime, uploadMedia, MAX_MEDIA_BYTES } from '@/lib/media';
 import { useVoiceRecorder } from '@/hooks/use-voice-recorder';
@@ -21,6 +23,10 @@ export interface OutgoingMedia {
   durationMs?: number;
   waveform?: number[];
   stickerText?: string;
+  /** Remote URL (GIFs are sent as direct links, no upload). */
+  remote?: boolean;
+  width?: number;
+  height?: number;
 }
 
 export function Composer({
@@ -51,6 +57,7 @@ export function Composer({
   const tr = t();
   const [text, setText] = useState(draft ?? '');
   const [emojiBar, setEmojiBar] = useState(false);
+  const [gifOpen, setGifOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const inputRef = useRef<TextInput>(null);
@@ -120,30 +127,48 @@ export function Composer({
   };
 
   /** Pick + upload a media file, then send it as a message. */
-  const pickAndSend = async (source: 'photo' | 'video' | 'file') => {
+  const pickAndSend = async (source: 'photo' | 'video' | 'file' | 'camera') => {
     try {
       let uri = '';
       let mime: string | undefined;
       let name: string | undefined;
       let size: number | undefined;
 
-      if (source === 'photo' || source === 'video') {
-        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!perm.granted) {
-          Alert.alert(tr.settings.pushNotifications, tr.voice.micDenied);
-          return;
+      if (source === 'photo' || source === 'video' || source === 'camera') {
+        if (source === 'camera') {
+          const camPerm = await ImagePicker.requestCameraPermissionsAsync();
+          if (!camPerm.granted) {
+            showAlert(tr.settings.pushNotifications, tr.voice.micDenied);
+            return;
+          }
+          const shot = await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'],
+            quality: 0.85,
+          });
+          if (shot.canceled || !shot.assets[0]) return;
+          const asset = shot.assets[0];
+          uri = asset.uri;
+          mime = asset.mimeType;
+          name = asset.fileName ?? undefined;
+          size = asset.fileSize ?? undefined;
+        } else {
+          const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (!perm.granted) {
+            showAlert(tr.settings.pushNotifications, tr.voice.micDenied);
+            return;
+          }
+          const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: source === 'photo' ? ['images'] : ['videos'],
+            quality: 0.85,
+            videoMaxDuration: 120,
+          });
+          if (result.canceled || !result.assets[0]) return;
+          const asset = result.assets[0];
+          uri = asset.uri;
+          mime = asset.mimeType;
+          name = asset.fileName ?? undefined;
+          size = asset.fileSize ?? undefined;
         }
-        const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: source === 'photo' ? ['images'] : ['videos'],
-          quality: 0.85,
-          videoMaxDuration: 120,
-        });
-        if (result.canceled || !result.assets[0]) return;
-        const asset = result.assets[0];
-        uri = asset.uri;
-        mime = asset.mimeType;
-        name = asset.fileName ?? undefined;
-        size = asset.fileSize ?? undefined;
       } else {
         const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
         if (result.canceled || !result.assets?.[0]) return;
@@ -176,12 +201,25 @@ export function Composer({
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       if (message !== 'CANCELLED') {
-        Alert.alert(tr.composer.uploadFailed, message === 'FILE_TOO_LARGE' ? tr.composer.fileTooLarge : message);
+        showAlert(tr.composer.uploadFailed, message === 'FILE_TOO_LARGE' ? tr.composer.fileTooLarge : message);
       }
     } finally {
       setUploading(false);
       setUploadProgress(0);
     }
+  };
+
+  /** Send a picked GIF as a direct remote-URL image message (no upload). */
+  const sendGif = async (gif: { url: string; width: number; height: number; alt: string }) => {
+    setGifOpen(false);
+    await onSendMedia({
+      kind: 'image',
+      uri: gif.url,
+      name: gif.alt,
+      remote: true,
+      width: gif.width,
+      height: gif.height,
+    });
   };
 
   /** Send a text-sticker from the built-in set (no upload needed). */
@@ -208,7 +246,7 @@ export function Composer({
         waveform: voice.meter,
       });
     } catch (e) {
-      Alert.alert(tr.composer.uploadFailed, e instanceof Error ? e.message : String(e));
+      showAlert(tr.composer.uploadFailed, e instanceof Error ? e.message : String(e));
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -337,6 +375,25 @@ export function Composer({
         </View>
       )}
 
+      {emojiBar && (
+        <View style={{ paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: C.border, gap: 8 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {QUICK_EMOJI.map((e) => (
+              <Pressable key={e} onPress={() => setText((t) => t + e)} style={{ padding: 4 }}>
+                <Text style={{ fontSize: 22 }}>{e}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {STICKERS.map((s) => (
+              <Pressable key={s} onPress={() => void sendSticker(s)} style={{ padding: 4 }}>
+                <Text style={{ fontSize: 28 }}>{s}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      )}
+
       {banner && (
         <View
           style={{
@@ -356,25 +413,6 @@ export function Composer({
           <Pressable onPress={banner.onDismiss} hitSlop={10}>
             <Ionicons name="close" size={18} color={C.textDim} />
           </Pressable>
-        </View>
-      )}
-
-      {emojiBar && (
-        <View style={{ paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: C.border, gap: 8 }}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-            {QUICK_EMOJI.map((e) => (
-              <Pressable key={e} onPress={() => setText((t) => t + e)} style={{ padding: 4 }}>
-                <Text style={{ fontSize: 22 }}>{e}</Text>
-              </Pressable>
-            ))}
-          </View>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-            {STICKERS.map((s) => (
-              <Pressable key={s} onPress={() => void sendSticker(s)} style={{ padding: 4 }}>
-                <Text style={{ fontSize: 28 }}>{s}</Text>
-              </Pressable>
-            ))}
-          </View>
         </View>
       )}
 
@@ -400,6 +438,18 @@ export function Composer({
           style={{ width: 34, height: 40, alignItems: 'center', justifyContent: 'center' }}
         >
           <Ionicons name="image-outline" size={22} color={C.textDim} />
+        </Pressable>
+        <Pressable
+          onPress={() => void pickAndSend('camera')}
+          style={{ width: 34, height: 40, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Ionicons name="camera-outline" size={22} color={C.textDim} />
+        </Pressable>
+        <Pressable
+          onPress={() => setGifOpen(true)}
+          style={{ width: 34, height: 40, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Ionicons name="flash-outline" size={20} color={C.textDim} />
         </Pressable>
         <Pressable
           onPress={() => void pickAndSend('file')}
@@ -470,6 +520,12 @@ export function Composer({
           </Pressable>
         )}
       </View>
+
+      <GifPicker
+        visible={gifOpen}
+        onClose={() => setGifOpen(false)}
+        onPick={(gif) => void sendGif(gif)}
+      />
     </View>
   );
 }

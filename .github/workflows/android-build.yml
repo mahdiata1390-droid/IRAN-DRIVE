@@ -61,13 +61,19 @@ jobs:
           path: uchiha-clan.apk
           if-no-files-found: error
 
+      - name: Read version from app.json
+        id: ver
+        run: |
+          echo "version=$(node -p "require('./app.json').expo.version")" >> "$GITHUB_OUTPUT"
+          echo "code=$(node -p "require('./app.json').expo.versionCode")" >> "$GITHUB_OUTPUT"
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0
-          name: UCHIHA Clan Messenger v1.0.0
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: UCHIHA Clan Messenger v${{ steps.ver.outputs.version }}
           body: |
-            🏴 اولین نسخه‌ی اندروید UCHIHA Clan Messenger (APK نصب‌شدنی)
+            🏴 نسخه‌ی اندروید UCHIHA Clan Messenger (APK نصب‌شدنی) — نسخه v${{ steps.ver.outputs.version }} (کد ${{ steps.ver.outputs.code }})
 
             - نصب: فایل را دانلود کنید → اجازه‌ی «نصب از منابع ناشناس» را بدهید → نصب
             - مایکت: همین فایل APK برای آپلود در پنل مایکت استفاده می‌شود

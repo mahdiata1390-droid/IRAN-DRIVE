@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FlatList, Modal, Pressable, Text, TextInput, View, type DimensionValue } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { C, R } from '@/lib/theme';
@@ -7,6 +7,7 @@ import type { ChatScope } from '@/hooks/use-messages';
 import type { Message, Profile } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { EmptyState } from '@/components/ui';
+import { t } from '@/i18n';
 
 const REACTION_PICKS = ['👍', '🔥', '❤️', '😂', '😮', '😢', '💀', '🎯'];
 
@@ -62,6 +63,7 @@ export function MessageActionsModal({
   onDelete,
   onReact,
   onTogglePin,
+  onForwardMessage,
 }: {
   visible: boolean;
   message: Message | null;
@@ -74,37 +76,30 @@ export function MessageActionsModal({
   onDelete: (m: Message) => void;
   onReact: (m: Message, emoji: string) => void;
   onTogglePin: (m: Message) => void;
+  onForwardMessage: (m: Message) => void;
 }) {
   if (!message) return null;
+  const tr = t();
   const options: { label: string; icon: string; danger?: boolean; onPress: () => void }[] = [
-    { label: 'Reply', icon: 'return-up-forward', onPress: () => onReply(message) },
-    { label: 'Copy Text', icon: 'copy-outline', onPress: () => void Clipboard.setStringAsync(message.content) },
+    { label: tr.common.reply, icon: 'return-up-forward', onPress: () => onReply(message) },
+    { label: tr.common.copy, icon: 'copy-outline', onPress: () => void Clipboard.setStringAsync(message.content) },
+    { label: tr.common.forward, icon: 'arrow-redo-outline', onPress: () => onForwardMessage(message) },
     ...(isMine && !message.deleted_at
-      ? [{ label: 'Edit', icon: 'create-outline', onPress: () => onEdit(message) }]
+      ? [{ label: tr.common.edit, icon: 'create-outline', onPress: () => onEdit(message) }]
       : []),
     ...(canPin
       ? [
           {
-            label: message.pinned ? 'Unpin' : 'Pin Message',
+            label: message.pinned ? `${tr.chat.jumpTo}: ${tr.chat.pinnedTitle}` : tr.chat.pinnedTitle,
             icon: 'bookmark-outline',
             onPress: () => onTogglePin(message),
           },
         ]
       : []),
-    ...(canModerate && !isMine
+    ...((isMine || canModerate) && !message.deleted_at
       ? [
           {
-            label: 'Delete Message',
-            icon: 'trash-outline',
-            danger: true,
-            onPress: () => onDelete(message),
-          },
-        ]
-      : []),
-    ...(isMine
-      ? [
-          {
-            label: 'Delete Message',
+            label: tr.common.delete,
             icon: 'trash-outline',
             danger: true,
             onPress: () => onDelete(message),
@@ -176,6 +171,7 @@ export function SearchModal({
   scope: ChatScope;
   memberById: Record<string, Profile>;
 }) {
+  const tr = t();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Message[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -203,13 +199,13 @@ export function SearchModal({
     <ModalShell visible={visible} onClose={onClose} height="80%">
       {GRABBER}
       <Text style={{ color: C.text, fontWeight: '800', fontSize: 17, paddingHorizontal: 16, marginBottom: 10 }}>
-        Search Messages
+        {tr.chat.searchTitle}
       </Text>
       <View style={{ paddingHorizontal: 16, marginBottom: 10 }}>
         <TextInput
           value={query}
           onChangeText={(q) => void runSearch(q)}
-          placeholder="Type at least 2 characters…"
+          placeholder={tr.chat.searchHint}
           placeholderTextColor={C.textFaint}
           autoFocus
           style={{
@@ -224,11 +220,11 @@ export function SearchModal({
           }}
         />
       </View>
-      {searching ? <Text style={{ color: C.textFaint, textAlign: 'center' }}>Searching…</Text> : null}
+      {searching ? <Text style={{ color: C.textFaint, textAlign: 'center' }}>{tr.chat.searching}</Text> : null}
       {results === null ? (
-        <EmptyState icon="🔍" title="Search this chat" subtitle="Find any message by keyword." />
+        <EmptyState icon="🔍" title={tr.chat.searchEmptyTitle} subtitle={tr.chat.searchEmptySubtitle} />
       ) : results.length === 0 ? (
-        <EmptyState icon="🜲" title="No matches" />
+        <EmptyState icon="🜲" title={tr.chat.noMatches} />
       ) : (
         <FlatList
           data={results}
@@ -248,28 +244,122 @@ export function SearchModal({
   );
 }
 
+export function ForwardModal({
+  visible,
+  onClose,
+  onForward,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onForward: (target: { kind: 'room' | 'dm'; id: string; label: string }) => void;
+}) {
+  const tr = t();
+  const [targets, setTargets] = useState<
+    { kind: 'room' | 'dm'; id: string; label: string }[]
+  >([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!visible) return;
+    setLoading(true);
+    setError(false);
+    void (async () => {
+      const [roomsRes, dmsRes] = await Promise.all([
+        supabase.from('rooms').select('id,name,kind').order('kind').order('name'),
+        supabase.rpc('my_dms'),
+      ]);
+      const list: { kind: 'room' | 'dm'; id: string; label: string }[] = [];
+      for (const r of (roomsRes.data ?? []) as { id: string; name: string; kind: string }[]) {
+        list.push({ kind: 'room', id: r.id, label: r.name });
+      }
+      for (const d of (dmsRes.data ?? []) as {
+        conversation_id: string;
+        other_display_name: string;
+      }[]) {
+        list.push({ kind: 'dm', id: d.conversation_id, label: d.other_display_name });
+      }
+      setTargets(list);
+      setError(list.length === 0 && !!roomsRes.error);
+      setLoading(false);
+    })();
+  }, [visible]);
+
+  return (
+    <ModalShell visible={visible} onClose={onClose} height="60%">
+      {GRABBER}
+      <Text style={{ color: C.text, fontWeight: '800', fontSize: 17, paddingHorizontal: 16, marginBottom: 10 }}>
+        {tr.chat.forwardTitle}
+      </Text>
+      {loading ? (
+        <Text style={{ color: C.textFaint, textAlign: 'center', paddingVertical: 20 }}>{tr.common.loading}</Text>
+      ) : error || targets.length === 0 ? (
+        <EmptyState icon="📤" title={tr.chat.forwardTitle} subtitle={tr.common.error} />
+      ) : (
+        <FlatList
+          data={targets}
+          keyExtractor={(tItem) => `${tItem.kind}:${tItem.id}`}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() => {
+                onClose();
+                setTimeout(() => onForward(item), 120);
+              }}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+                paddingVertical: 12,
+                paddingHorizontal: 10,
+                borderRadius: R.m,
+                marginBottom: 4,
+                backgroundColor: C.bgCard,
+                borderWidth: 1,
+                borderColor: C.border,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Text style={{ color: C.red, fontWeight: '800', fontSize: 12 }}>
+                {item.kind === 'room' ? '#' : '@'}
+              </Text>
+              <Text style={{ color: C.text, fontSize: 15, fontWeight: '600', flex: 1 }} numberOfLines={1}>
+                {item.label}
+              </Text>
+              <Text style={{ color: C.red, fontWeight: '700', fontSize: 13 }}>{tr.common.send} →</Text>
+            </Pressable>
+          )}
+        />
+      )}
+    </ModalShell>
+  );
+}
+
 export function PinnedModal({
   visible,
   onClose,
   pinned,
   memberById,
+  onJumpTo,
 }: {
   visible: boolean;
   onClose: () => void;
   pinned: Message[];
   memberById: Record<string, Profile>;
+  onJumpTo?: (m: Message) => void;
 }) {
+  const tr = t();
   return (
     <ModalShell visible={visible} onClose={onClose} height="60%">
       {GRABBER}
       <Text style={{ color: C.text, fontWeight: '800', fontSize: 17, paddingHorizontal: 16, marginBottom: 10 }}>
-        📌 Pinned Messages
+        📌 {tr.chat.pinnedListTitle}
       </Text>
       {pinned.length === 0 ? (
         <EmptyState
           icon="📌"
-          title="Nothing pinned"
-          subtitle="Moderators can pin important messages so they stay on top."
+          title={tr.chat.pinnedEmptyTitle}
+          subtitle={tr.chat.pinnedEmptySubtitle}
         />
       ) : (
         <FlatList
@@ -277,12 +367,19 @@ export function PinnedModal({
           keyExtractor={(m) => m.id}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
           renderItem={({ item }) => (
-            <View style={{ paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: C.border }}>
+            <Pressable
+              onPress={() => {
+                onClose();
+                setTimeout(() => onJumpTo?.(item), 120);
+              }}
+              style={({ pressed }) => ({ paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: C.border, opacity: pressed ? 0.6 : 1 })}
+            >
               <Text style={{ color: C.gold, fontWeight: '700', fontSize: 13 }}>
-                {memberById[item.sender_id]?.display_name ?? 'Member'} · {shortTime(item.created_at)}
+                {memberById[item.sender_id]?.display_name ?? tr.common.members} · {shortTime(item.created_at)}
               </Text>
               <Text style={{ color: C.text, fontSize: 14.5, marginTop: 2 }}>{item.content}</Text>
-            </View>
+              <Text style={{ color: C.red, fontSize: 11.5, marginTop: 4, fontWeight: '600' }}>↑ {tr.chat.jumpTo}</Text>
+            </Pressable>
           )}
         />
       )}
