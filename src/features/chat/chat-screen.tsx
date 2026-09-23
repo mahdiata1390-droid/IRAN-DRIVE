@@ -18,6 +18,7 @@ import { EmptyState, Spinner } from '@/components/ui';
 import { useMessages, type ChatScope } from '@/hooks/use-messages';
 import { useSession } from '@/providers/session';
 import { t } from '@/i18n';
+import { showAlert } from '@/lib/alert';
 import { C, R } from '@/lib/theme';
 import { dayLabel } from '@/lib/time';
 import { canModerate, canPin, roleColor } from '@/lib/roles';
@@ -114,7 +115,7 @@ export function ChatScreen({
           await send(text, replyTo?.id ?? null, parseMentions(text));
           setReplyTo(null);
         } catch (e) {
-          Alert.alert('Message failed', e instanceof Error ? e.message : 'Try again.');
+          showAlert('Message failed', e instanceof Error ? e.message : 'Try again.');
         }
       })();
     },
@@ -126,7 +127,7 @@ export function ChatScreen({
       try {
         await sendMedia(media);
       } catch (e) {
-        Alert.alert('Send failed', e instanceof Error ? e.message : 'Try again.');
+        showAlert('Send failed', e instanceof Error ? e.message : 'Try again.');
       }
     },
     [sendMedia],
@@ -140,7 +141,7 @@ export function ChatScreen({
           await edit(editTarget.id, text);
           setEditTarget(null);
         } catch (e) {
-          Alert.alert('Edit failed', e instanceof Error ? e.message : 'Try again.');
+          showAlert('Edit failed', e instanceof Error ? e.message : 'Try again.');
         }
       })();
     },
@@ -149,6 +150,15 @@ export function ChatScreen({
 
   const handleDelete = useCallback(
     (m: Message) => {
+      if (Platform.OS === 'web') {
+        // window.alert/alert-confirm: browsers have no native 2-button Alert.
+        if (window.confirm('Delete this message? This cannot be undone.')) {
+          void remove(m.id).catch((e) =>
+            showAlert('Delete failed', e instanceof Error ? e.message : 'Try again.'),
+          );
+        }
+        return;
+      }
       Alert.alert('Delete message', 'This cannot be undone.', [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -156,7 +166,7 @@ export function ChatScreen({
           style: 'destructive',
           onPress: () => {
             void remove(m.id).catch((e) =>
-              Alert.alert('Delete failed', e instanceof Error ? e.message : 'Try again.'),
+              showAlert('Delete failed', e instanceof Error ? e.message : 'Try again.'),
             );
           },
         },
@@ -168,7 +178,7 @@ export function ChatScreen({
   const handleTogglePin = useCallback(
     (m: Message) => {
       void togglePin(m.id).catch((e) =>
-        Alert.alert('Pin failed', e instanceof Error ? e.message : 'Try again.'),
+        showAlert('Pin failed', e instanceof Error ? e.message : 'Try again.'),
       );
     },
     [togglePin],

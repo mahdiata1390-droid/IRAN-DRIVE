@@ -303,12 +303,14 @@ create policy "participants read conversations"
   ));
 
 drop policy if exists "participants read own participation" on public.dm_participants;
+-- NOTE: the policy must NOT query dm_participants itself — a self-referencing
+-- subquery inside the table's own SELECT policy makes Postgres raise
+-- 42P17 "infinite recursion detected in policy for relation dm_participants"
+-- (HTTP 500) for every SELECT. Each participant can always see their own rows,
+-- and co-participants resolve via the security-definer helper instead.
 create policy "participants read own participation"
   on public.dm_participants for select to authenticated
-  using (user_id = auth.uid() or exists (
-    select 1 from public.dm_participants p2
-    where p2.conversation_id = conversation_id and p2.user_id = auth.uid()
-  ));
+  using (user_id = auth.uid() or public.is_dm_participant(conversation_id));
 
 create or replace function public.is_dm_participant(cid uuid)
 returns boolean language sql stable security definer set search_path = public as $$
