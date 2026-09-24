@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,6 +29,29 @@ export default function ProfileScreen() {
   const isMod = ['owner', 'leader', 'co_leader', 'moderator'].includes(profile.role);
 
   const claimOwnership = () => {
+    const runClaim = () => {
+      setClaiming(true);
+      void (async () => {
+        try {
+          const { error } = await supabase.rpc('claim_ownership');
+          if (error) throw error;
+
+          await refreshProfile();
+          Alert.alert('⚡', tr.members.claimOwnership);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Ownership transfer failed.';
+          Alert.alert(tr.common.error, message);
+        } finally {
+          setClaiming(false);
+        }
+      })();
+    };
+
+    if (Platform.OS === 'web') {
+      runClaim();
+      return;
+    }
+
     Alert.alert(
       tr.members.claimOwnership,
       tr.common.confirm,
@@ -36,23 +59,7 @@ export default function ProfileScreen() {
         { text: tr.common.cancel, style: 'cancel' },
         {
           text: tr.common.ok,
-          onPress: () => {
-            setClaiming(true);
-            void (async () => {
-              try {
-                const { error } = await supabase.rpc('claim_ownership');
-                if (error) throw error;
-
-                await refreshProfile();
-                Alert.alert('⚡', tr.members.claimOwnership);
-              } catch (error) {
-                const message = error instanceof Error ? error.message : 'Ownership transfer failed.';
-                Alert.alert(tr.common.error, message);
-              } finally {
-                setClaiming(false);
-              }
-            })();
-          },
+          onPress: runClaim,
         },
       ],
     );
@@ -134,7 +141,11 @@ export default function ProfileScreen() {
         </View>
 
         <GlassCard style={{ marginHorizontal: 16, marginTop: 18, padding: 20, alignItems: 'center' }}>
-          <SharinganEye size={104} state={isMod ? 'active' : 'idle'} />
+          <SharinganEye size={104} state={isMod ? 'active' : 'idle'} variant="mangekyou" />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 8 }}>
+            <SharinganEye size={58} state="idle" variant="sharingan" />
+            <SharinganEye size={58} state="active" variant="rinnegan" />
+          </View>
           <Avatar url={profile.avatar_url} name={profile.display_name} size="xl" online />
           <Text style={{ color: C.text, fontSize: 21, fontWeight: '800', marginTop: 12 }}>
             {profile.display_name}
@@ -162,6 +173,10 @@ export default function ProfileScreen() {
             label={tr.auth.logout}
             variant="danger"
             onPress={() => {
+              if (Platform.OS === 'web') {
+                void signOut();
+                return;
+              }
               Alert.alert(tr.auth.logout, tr.common.confirm, [
                 { text: tr.common.cancel, style: 'cancel' },
                 { text: tr.auth.logout, style: 'destructive', onPress: () => void signOut() },

@@ -15,9 +15,20 @@ import Animated, {
 const EYE = 240;
 const EMBER_COUNT = 7;
 export type SharinganState = 'idle' | 'loading' | 'sent' | 'received' | 'notification' | 'recording' | 'active';
+export type EyeVariant = 'sharingan' | 'mangekyou' | 'rinnegan';
 
-export function SharinganEye({ size = EYE, state = 'idle' }: { size?: number; state?: SharinganState }) {
+export function SharinganEye({
+  size = EYE,
+  state = 'idle',
+  variant = 'sharingan',
+}: {
+  size?: number;
+  state?: SharinganState;
+  variant?: EyeVariant;
+}) {
   const scale = (v: number) => (size / EYE) * v;
+  const isRinnegan = variant === 'rinnegan';
+  const irisColor = isRinnegan ? '#8B5CF6' : variant === 'mangekyou' ? '#C51B4A' : '#B00F16';
 
   const breathe = useSharedValue(1);
   const glow = useSharedValue(0.55);
@@ -293,8 +304,8 @@ export function SharinganEye({ size = EYE, state = 'idle' }: { size?: number; st
               width: scale(196),
               height: scale(196),
               borderRadius: scale(98),
-              backgroundColor: '#B00F16',
-              shadowColor: '#FF2A2A',
+              backgroundColor: irisColor,
+              shadowColor: isRinnegan ? '#A855F7' : '#FF2A2A',
               shadowOpacity: 0.9,
               shadowRadius: scale(28),
               shadowOffset: { width: 0, height: 0 },
@@ -310,9 +321,25 @@ export function SharinganEye({ size = EYE, state = 'idle' }: { size?: number; st
             height: scale(196),
             borderRadius: scale(98),
             borderWidth: scale(10),
-            borderColor: 'rgba(60,4,8,0.55)',
+            borderColor: isRinnegan ? 'rgba(36,12,73,0.62)' : 'rgba(60,4,8,0.55)',
           }}
         />
+        {isRinnegan
+          ? [58, 94, 130, 164].map((ring) => (
+              <View
+                key={ring}
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  width: scale(ring),
+                  height: scale(ring),
+                  borderRadius: scale(ring / 2),
+                  borderWidth: scale(4),
+                  borderColor: 'rgba(38,12,74,0.75)',
+                }}
+              />
+            ))
+          : null}
         <Animated.View
           pointerEvents="none"
           style={[
@@ -332,7 +359,7 @@ export function SharinganEye({ size = EYE, state = 'idle' }: { size?: number; st
             width: scale(58),
             height: scale(58),
             borderRadius: scale(29),
-            backgroundColor: '#0B0203',
+            backgroundColor: isRinnegan ? '#190B2E' : '#0B0203',
             shadowColor: '#000',
             shadowOpacity: 1,
             shadowRadius: scale(12),
@@ -344,7 +371,7 @@ export function SharinganEye({ size = EYE, state = 'idle' }: { size?: number; st
             width: scale(18),
             height: scale(18),
             borderRadius: scale(9),
-            backgroundColor: 'rgba(255,60,60,0.85)',
+            backgroundColor: isRinnegan ? '#F3E8FF' : 'rgba(255,60,60,0.85)',
           }}
         />
         <Animated.View
@@ -360,7 +387,7 @@ export function SharinganEye({ size = EYE, state = 'idle' }: { size?: number; st
             tomoeWrapStyle,
           ]}
         >
-          {[0, 120, 240].map((deg) => (
+          {(isRinnegan ? [] : [0, 120, 240]).map((deg) => (
             <View
               key={deg}
               pointerEvents="none"
@@ -379,7 +406,7 @@ export function SharinganEye({ size = EYE, state = 'idle' }: { size?: number; st
                   width: scale(44),
                   height: scale(44),
                   borderRadius: scale(22),
-                  backgroundColor: '#14030A',
+                  backgroundColor: variant === 'mangekyou' ? '#19020B' : '#14030A',
                   borderWidth: scale(3),
                   borderColor: 'rgba(255,120,120,0.35)',
                 }}
@@ -398,6 +425,22 @@ export function SharinganEye({ size = EYE, state = 'idle' }: { size?: number; st
               </View>
             </View>
           ))}
+          {variant === 'mangekyou'
+            ? [0, 60, 120].map((deg) => (
+                <View
+                  key={`blade-${deg}`}
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    width: scale(20),
+                    height: scale(86),
+                    borderRadius: scale(12),
+                    backgroundColor: '#19020B',
+                    transform: [{ rotate: `${deg}deg` }, { translateY: -scale(48) }],
+                  }}
+                />
+              ))
+            : null}
         </Animated.View>
       </Animated.View>
     </View>
@@ -472,6 +515,14 @@ const styles = StyleSheet.create({
   body: { alignItems: 'center', justifyContent: 'center' },
 });
 
-export function SharinganEyeSmall({ size = 96, state = 'idle' }: { size?: number; state?: SharinganState }) {
-  return <SharinganEye size={size} state={state} />;
+export function SharinganEyeSmall({
+  size = 96,
+  state = 'idle',
+  variant = 'sharingan',
+}: {
+  size?: number;
+  state?: SharinganState;
+  variant?: EyeVariant;
+}) {
+  return <SharinganEye size={size} state={state} variant={variant} />;
 }
