@@ -2,7 +2,7 @@
  * Precaches the app shell; stale-while-revalidate for same-origin GETs.
  * Never intercepts Supabase API/Realtime (cross-origin) traffic.
  */
-const CACHE = 'uchiha-v2';
+const CACHE = 'uchiha-v3';
 const SHELL = ['/', '/index.html', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {

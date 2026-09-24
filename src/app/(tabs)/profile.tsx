@@ -39,19 +39,6 @@ export default function ProfileScreen() {
             setClaiming(true);
             void (async () => {
               try {
-                const { data: ownerRow, error: ownerError } = await supabase
-                  .from('profiles')
-                  .select('id')
-                  .eq('role', 'owner')
-                  .limit(1)
-                  .maybeSingle();
-
-                if (ownerError) throw ownerError;
-                if (ownerRow) {
-                  Alert.alert(tr.common.error, 'Ownership is already assigned to another clan member.');
-                  return;
-                }
-
                 const { error } = await supabase.rpc('claim_ownership');
                 if (error) throw error;
 

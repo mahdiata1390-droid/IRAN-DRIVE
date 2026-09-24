@@ -138,11 +138,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
-      if (error) throw error;
+      // Local sign-out keeps the web/PWA logout path independent of a stale
+      // refresh token or a temporarily unavailable auth endpoint.
+      await supabase.auth.signOut({ scope: 'local' });
       clearSessionState();
       router.replace('/(auth)/welcome');
     } catch (error) {
+      clearSessionState();
+      router.replace('/(auth)/welcome');
       const message = error instanceof Error ? error.message : 'Unable to sign out right now.';
       Alert.alert('Sign out failed', message);
     }
