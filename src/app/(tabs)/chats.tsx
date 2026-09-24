@@ -4,7 +4,7 @@ import { Link, Stack, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '@/components/avatar';
-import { EmptyState, Spinner } from '@/components/ui';
+import { EmptyState, GlassIconButton, GlassPill, GlassSurface, Spinner } from '@/components/ui';
 import { useChats } from '@/hooks/use-chats';
 import { useNotifications } from '@/hooks/use-notifications';
 import { useRequireAuth } from '@/hooks/use-require-auth';
@@ -281,137 +281,51 @@ export default function ChatsScreen() {
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Link href="/notifications" asChild>
-              <Pressable
-                style={({ pressed }) => ({
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: C.bgCard,
-                  borderWidth: 1,
-                  borderColor: C.border,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <Ionicons name="notifications-outline" size={20} color={C.textDim} />
-                {notifUnread > 0 ? (
-                  <View
-                    style={{
-                      position: 'absolute',
-                      top: 4,
-                      right: 4,
-                      minWidth: 16,
-                      height: 16,
-                      borderRadius: 8,
-                      backgroundColor: C.red,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      paddingHorizontal: 3,
-                    }}
-                  >
-                    <Text style={{ color: '#fff', fontSize: 9.5, fontWeight: '800' }}>{notifUnread}</Text>
-                  </View>
-                ) : null}
-              </Pressable>
+              <GlassIconButton icon="🔔" onPress={() => router.push('/notifications')} />
             </Link>
             <Link href="/search" asChild>
-              <Pressable
-                style={({ pressed }) => ({
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: C.bgCard,
-                  borderWidth: 1,
-                  borderColor: C.border,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <Ionicons name="search" size={20} color={C.textDim} />
-              </Pressable>
+              <GlassIconButton icon="⌕" onPress={() => router.push('/search')} />
             </Link>
             <Link href="/announcements" asChild>
-              <Pressable
-                style={({ pressed }) => ({
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: C.bgCard,
-                  borderWidth: 1,
-                  borderColor: C.border,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <Ionicons name="megaphone-outline" size={20} color={C.textDim} />
-              </Pressable>
+              <GlassIconButton icon="📣" onPress={() => router.push('/announcements')} />
             </Link>
             <Link href="/new-room" asChild>
-              <Pressable
-                style={({ pressed }) => ({
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: C.redSoft,
-                  borderWidth: 1,
-                  borderColor: C.redBorder,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <Ionicons name="add" size={24} color={C.red} />
-              </Pressable>
+              <GlassIconButton icon="＋" onPress={() => router.push('/new-room')} tint="red" />
             </Link>
           </View>
         </View>
 
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder={tr.chats.searchPlaceholder}
-          placeholderTextColor={C.textFaint}
-          style={{
-            marginTop: 12,
-            backgroundColor: C.bgCard,
-            borderWidth: 1,
-            borderColor: C.border,
-            borderRadius: R.m,
-            paddingHorizontal: 12,
-            paddingVertical: 9,
-            color: C.text,
-            fontSize: 14.5,
-          }}
-        />
+        <GlassSurface style={{ marginTop: 12, paddingHorizontal: 12, paddingVertical: 8, borderRadius: R.m }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={{ color: C.textFaint, fontSize: 16 }}>⌕</Text>
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder={tr.chats.searchPlaceholder}
+              placeholderTextColor={C.textFaint}
+              style={{ flex: 1, color: C.text, fontSize: 14.5, paddingVertical: 6 }}
+            />
+            {notifUnread > 0 ? (
+              <View
+                style={{
+                  minWidth: 18,
+                  height: 18,
+                  borderRadius: 9,
+                  backgroundColor: C.red,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingHorizontal: 5,
+                }}
+              >
+                <Text style={{ color: '#fff', fontSize: 9.5, fontWeight: '800' }}>{notifUnread}</Text>
+              </View>
+            ) : null}
+          </View>
+        </GlassSurface>
 
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
           {(['all', 'clan', 'dms', 'favorites', 'archived'] as Filter[]).map((f) => (
-            <Pressable
-              key={f}
-              onPress={() => setFilter(f)}
-              style={({ pressed }) => ({
-                paddingVertical: 6,
-                paddingHorizontal: 14,
-                borderRadius: 999,
-                backgroundColor: filter === f ? C.redSoft : 'transparent',
-                borderWidth: 1,
-                borderColor: filter === f ? C.redBorder : C.border,
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <Text
-                style={{
-                  color: filter === f ? C.red : C.textDim,
-                  fontSize: 12.5,
-                  fontWeight: '700',
-                }}
-              >
-                {filterLabel[f]}
-              </Text>
-            </Pressable>
+            <GlassPill key={f} label={filterLabel[f]} active={filter === f} onPress={() => setFilter(f)} />
           ))}
         </View>
       </View>
@@ -425,7 +339,7 @@ export default function ChatsScreen() {
           renderItem={(info) =>
             'slug' in info.item ? renderRoom({ item: info.item as Room }) : renderDm({ item: info.item as DmListItem })
           }
-          contentContainerStyle={{ paddingBottom: 24 }}
+          contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 12, paddingBottom: 24, gap: 10 }}
           onRefresh={() => void refresh()}
           refreshing={loading}
           ListEmptyComponent={

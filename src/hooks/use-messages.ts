@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { resolveChannelTopic, supabase } from '@/lib/supabase';
 import type { Message, Reaction } from '@/lib/types';
 
@@ -51,6 +52,17 @@ export function useMessages(scope: ChatScope, myId: string | null) {
     messageIdsRef.current.add(incoming.id);
   }, []);
 
+  const mergeMessages = useCallback((incoming: Message[]) => {
+    setMessages((prev) => {
+      const byId = new Map(prev.map((message) => [message.id, message]));
+      for (const message of incoming) {
+        byId.set(message.id, { ...byId.get(message.id), ...message });
+        messageIdsRef.current.add(message.id);
+      }
+      return [...byId.values()].sort((a, b) => a.created_at.localeCompare(b.created_at));
+    });
+  }, []);
+
   // Initial load + realtime wiring.
   useEffect(() => {
     let cancelled = false;
@@ -70,8 +82,7 @@ export function useMessages(scope: ChatScope, myId: string | null) {
         .limit(PAGE_SIZE);
       if (cancelled) return;
       const rows = ((data ?? []) as Message[]).slice().reverse();
-      setMessages(rows);
-      messageIdsRef.current = new Set(rows.map((m) => m.id));
+      mergeMessages(rows);
       setHasMore(rows.length === PAGE_SIZE);
       setLoading(false);
 
@@ -116,7 +127,7 @@ export function useMessages(scope: ChatScope, myId: string | null) {
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `${scopeColumn}=eq.${scope.id}` },
         (payload) => {
           const row = payload.new as Message;
-          if (row.sender_id === myIdRef.current) return; // already appended optimistically
+          if (!row.id || row[scopeColumn] !== scope.id) return;
           mergeMessage(row);
         },
       )
@@ -187,17 +198,29 @@ export function useMessages(scope: ChatScope, myId: string | null) {
       );
     }
 
-    channel.subscribe();
+    let subscriptionStatus = 'CLOSED';
+    channel.subscribe((status) => {
+      subscriptionStatus = status;
+    });
+
+    const appStateSubscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && subscriptionStatus !== 'SUBSCRIBED') {
+        channel.subscribe((status) => {
+          subscriptionStatus = status;
+        });
+      }
+    });
 
     channelRef.current = channel;
     return () => {
       cancelled = true;
+      appStateSubscription.remove();
       supabase.removeChannel(channel);
       channelRef.current = null;
       for (const t of typingTimersRef.current.values()) clearTimeout(t);
       typingTimersRef.current.clear();
     };
-  }, [scope.kind, scope.id, scopeColumn, mergeMessage]);
+  }, [scope.kind, scope.id, scopeColumn, mergeMessage, mergeMessages]);
 
   const loadMore = useCallback(async () => {
     setMessages((current) => {

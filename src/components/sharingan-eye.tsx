@@ -12,56 +12,212 @@ import Animated, {
   Extrapolation,
 } from 'react-native-reanimated';
 
-/**
- * Original, glowing Sharingan-inspired eye.
- * Layers: ambient glow rings -> crimson iris -> black pupil -> 3 tomoe (rotating)
- *         -> eye outline -> slow breathing zoom + rising ember particles.
- * Pure views + Reanimated transforms (no images) => light enough for iPhone 13
- * class hardware, runs on web too (transform-based, RN-web safe).
- */
-
-const EYE = 240; // base size
+const EYE = 240;
 const EMBER_COUNT = 7;
+export type SharinganState = 'idle' | 'loading' | 'sent' | 'received' | 'notification' | 'recording' | 'active';
 
-export function SharinganEye({ size = EYE }: { size?: number }) {
+export function SharinganEye({ size = EYE, state = 'idle' }: { size?: number; state?: SharinganState }) {
   const scale = (v: number) => (size / EYE) * v;
 
-  // --- continuous animations -------------------------------------------------
-  const breathe = useSharedValue(1); // subtle zoom 1 -> 1.03
-  const glow = useSharedValue(0.55); // glow opacity pulse
-  const spin = useSharedValue(0); // tomoe rotation (continuous)
-  const shimmer = useSharedValue(0); // iris highlight sweep
+  const breathe = useSharedValue(1);
+  const glow = useSharedValue(0.55);
+  const spin = useSharedValue(0);
+  const shimmer = useSharedValue(0);
+  const irisShift = useSharedValue(0);
 
   useEffect(() => {
-    breathe.value = withRepeat(
-      withSequence(
-        withTiming(1.03, { duration: 1600, easing: Easing.inOut(Easing.quad) }),
-        withTiming(1, { duration: 1600, easing: Easing.inOut(Easing.quad) }),
-      ),
-      -1,
-    );
-    glow.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.quad) }),
-        withTiming(0.5, { duration: 1400, easing: Easing.inOut(Easing.quad) }),
-      ),
-      -1,
-    );
-    spin.value = withRepeat(
-      withTiming(360, { duration: 14000, easing: Easing.linear }),
-      -1,
-      false,
-    );
-    shimmer.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.quad) }),
-        withTiming(0, { duration: 2600, easing: Easing.inOut(Easing.quad) }),
-      ),
-      -1,
-    );
-  }, [breathe, glow, spin, shimmer]);
+    const isTransient = state === 'sent' || state === 'received' || state === 'notification';
 
-  // --- animated styles -------------------------------------------------------
+    if (state === 'idle') {
+      breathe.value = withRepeat(
+        withSequence(
+          withTiming(1.025, { duration: 1800, easing: Easing.inOut(Easing.quad) }),
+          withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+        false,
+      );
+      glow.value = withRepeat(
+        withSequence(
+          withTiming(0.8, { duration: 2000, easing: Easing.inOut(Easing.quad) }),
+          withTiming(0.55, { duration: 2200, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+        false,
+      );
+      spin.value = withRepeat(
+        withTiming(360, { duration: 26000, easing: Easing.linear }),
+        -1,
+        false,
+      );
+      shimmer.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 3000, easing: Easing.inOut(Easing.quad) }),
+          withTiming(0, { duration: 3000, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+        false,
+      );
+      irisShift.value = withRepeat(
+        withSequence(
+          withTiming(2.5, { duration: 4200, easing: Easing.inOut(Easing.quad) }),
+          withTiming(-2.5, { duration: 4200, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+        false,
+      );
+      return;
+    }
+
+    if (state === 'loading') {
+      breathe.value = withRepeat(
+        withSequence(
+          withTiming(1.08, { duration: 900, easing: Easing.inOut(Easing.quad) }),
+          withTiming(1, { duration: 900, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+        false,
+      );
+      glow.value = withRepeat(
+        withSequence(
+          withTiming(1.1, { duration: 1200, easing: Easing.inOut(Easing.quad) }),
+          withTiming(0.7, { duration: 1200, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+        false,
+      );
+      spin.value = withRepeat(
+        withTiming(360, { duration: 12000, easing: Easing.linear }),
+        -1,
+        false,
+      );
+      shimmer.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.quad) }),
+          withTiming(0, { duration: 1800, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+        false,
+      );
+      irisShift.value = withRepeat(
+        withSequence(
+          withTiming(6, { duration: 1800, easing: Easing.inOut(Easing.quad) }),
+          withTiming(-5, { duration: 1600, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+        false,
+      );
+      return;
+    }
+
+    if (state === 'recording') {
+      breathe.value = withRepeat(
+        withSequence(
+          withTiming(1.1, { duration: 700, easing: Easing.inOut(Easing.quad) }),
+          withTiming(0.98, { duration: 700, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+        false,
+      );
+      glow.value = withRepeat(
+        withSequence(
+          withTiming(1.2, { duration: 500, easing: Easing.inOut(Easing.quad) }),
+          withTiming(0.78, { duration: 500, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+        false,
+      );
+      spin.value = withRepeat(
+        withTiming(180, { duration: 5000, easing: Easing.linear }),
+        -1,
+        false,
+      );
+      shimmer.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 900, easing: Easing.inOut(Easing.quad) }),
+          withTiming(0.15, { duration: 900, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+        false,
+      );
+      irisShift.value = withRepeat(
+        withSequence(
+          withTiming(8, { duration: 900, easing: Easing.inOut(Easing.quad) }),
+          withTiming(-8, { duration: 900, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+        false,
+      );
+      return;
+    }
+
+    if (state === 'active') {
+      breathe.value = withRepeat(
+        withSequence(
+          withTiming(1.15, { duration: 850, easing: Easing.inOut(Easing.quad) }),
+          withTiming(1, { duration: 850, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+        false,
+      );
+      glow.value = withRepeat(
+        withSequence(
+          withTiming(1.5, { duration: 700, easing: Easing.inOut(Easing.quad) }),
+          withTiming(0.85, { duration: 1200, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+        false,
+      );
+      spin.value = withRepeat(
+        withTiming(360, { duration: 8500, easing: Easing.linear }),
+        -1,
+        false,
+      );
+      shimmer.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.quad) }),
+          withTiming(0.3, { duration: 1800, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+        false,
+      );
+      irisShift.value = withRepeat(
+        withSequence(
+          withTiming(6, { duration: 1100 }),
+          withTiming(-4, { duration: 1100 }),
+        ),
+        -1,
+        false,
+      );
+      return;
+    }
+
+    const transientGlow = isTransient ? 1.35 : 1.1;
+    const transientScale = isTransient ? 1.14 : 1.07;
+    const transientDuration = isTransient ? 360 : 520;
+
+    breathe.value = withSequence(
+      withTiming(transientScale, { duration: transientDuration, easing: Easing.inOut(Easing.quad) }),
+      withTiming(1, { duration: transientDuration + 120, easing: Easing.out(Easing.quad) }),
+    );
+    glow.value = withSequence(
+      withTiming(transientGlow, { duration: transientDuration, easing: Easing.inOut(Easing.quad) }),
+      withTiming(0.7, { duration: transientDuration + 180, easing: Easing.inOut(Easing.quad) }),
+    );
+    spin.value = withSequence(
+      withTiming(120, { duration: transientDuration + 70, easing: Easing.inOut(Easing.quad) }),
+      withTiming(0, { duration: 120, easing: Easing.linear }),
+    );
+    shimmer.value = withSequence(
+      withTiming(1, { duration: transientDuration, easing: Easing.inOut(Easing.quad) }),
+      withTiming(0, { duration: transientDuration + 220, easing: Easing.inOut(Easing.quad) }),
+    );
+    irisShift.value = withSequence(
+      withTiming(10, { duration: transientDuration, easing: Easing.inOut(Easing.quad) }),
+      withTiming(0, { duration: transientDuration + 200, easing: Easing.out(Easing.quad) }),
+    );
+  }, [breathe, glow, irisShift, shimmer, spin, state]);
+
   const rootStyle = useAnimatedStyle(() => ({
     transform: [{ scale: breathe.value }],
   }));
@@ -76,18 +232,24 @@ export function SharinganEye({ size = EYE }: { size?: number }) {
   }));
 
   const shimmerStyle = useAnimatedStyle(() => ({
-    opacity: 0.10 + shimmer.value * 0.22,
-    transform: [{ translateX: interpolate(shimmer.value, [0, 1], [-scale(60), scale(60)]) }],
+    opacity: 0.1 + shimmer.value * 0.26,
+    transform: [
+      { translateX: interpolate(shimmer.value, [0, 1], [-scale(60), scale(60)]) },
+      { translateY: interpolate(shimmer.value, [0, 1], [0, scale(6)]) },
+    ],
   }));
 
-  // embers: deterministic pseudo-random particles rising around the eye
+  const irisStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: irisShift.value }, { scale: 1 + glow.value * 0.04 }],
+  }));
+
   const embers = useMemo(
     () =>
       Array.from({ length: EMBER_COUNT }, (_, i) => ({
-        left: 8 + ((i * 37) % 84), // % across width
+        left: 8 + ((i * 37) % 84),
         delay: i * 700,
         dur: 4200 + ((i * 313) % 1800),
-        drift: ((i % 2 === 0 ? 1 : -1) * (6 + (i % 3) * 4)),
+        drift: (i % 2 === 0 ? 1 : -1) * (6 + (i % 3) * 4),
         size: 2.5 + (i % 3),
       })),
     [],
@@ -95,7 +257,6 @@ export function SharinganEye({ size = EYE }: { size?: number }) {
 
   return (
     <View style={[styles.wrap, { width: size, height: size }]}>
-      {/* ambient glow halo (pulsing) */}
       <Animated.View
         pointerEvents="none"
         style={[
@@ -110,13 +271,10 @@ export function SharinganEye({ size = EYE }: { size?: number }) {
           glowStyle,
         ]}
       />
-      {/* embers */}
       {embers.map((e, i) => (
         <Ember key={i} {...e} scale={scale} />
       ))}
-      {/* breathing body */}
       <Animated.View style={[styles.body, { width: size, height: size }, rootStyle]}>
-        {/* outer sclera ring */}
         <View
           style={{
             position: 'absolute',
@@ -128,22 +286,23 @@ export function SharinganEye({ size = EYE }: { size?: number }) {
             borderColor: '#3D0A0E',
           }}
         />
-        {/* crimson iris */}
-        <View
-          style={{
-            position: 'absolute',
-            width: scale(196),
-            height: scale(196),
-            borderRadius: scale(98),
-            backgroundColor: '#B00F16',
-            shadowColor: '#FF2A2A',
-            shadowOpacity: 0.9,
-            shadowRadius: scale(28),
-            shadowOffset: { width: 0, height: 0 },
-            elevation: 10,
-          }}
+        <Animated.View
+          style={[
+            {
+              position: 'absolute',
+              width: scale(196),
+              height: scale(196),
+              borderRadius: scale(98),
+              backgroundColor: '#B00F16',
+              shadowColor: '#FF2A2A',
+              shadowOpacity: 0.9,
+              shadowRadius: scale(28),
+              shadowOffset: { width: 0, height: 0 },
+              elevation: 10,
+            },
+            irisStyle,
+          ]}
         />
-        {/* radial depth: darker rim inside iris */}
         <View
           style={{
             position: 'absolute',
@@ -154,7 +313,6 @@ export function SharinganEye({ size = EYE }: { size?: number }) {
             borderColor: 'rgba(60,4,8,0.55)',
           }}
         />
-        {/* rotating highlight shimmer across iris */}
         <Animated.View
           pointerEvents="none"
           style={[
@@ -168,7 +326,6 @@ export function SharinganEye({ size = EYE }: { size?: number }) {
             shimmerStyle,
           ]}
         />
-        {/* pupil */}
         <View
           style={{
             position: 'absolute',
@@ -181,7 +338,6 @@ export function SharinganEye({ size = EYE }: { size?: number }) {
             shadowRadius: scale(12),
           }}
         />
-        {/* pupil core glow */}
         <View
           style={{
             position: 'absolute',
@@ -191,7 +347,6 @@ export function SharinganEye({ size = EYE }: { size?: number }) {
             backgroundColor: 'rgba(255,60,60,0.85)',
           }}
         />
-        {/* tomoe — 3 comma-shaped marks rotating around pupil */}
         <Animated.View
           pointerEvents="none"
           style={[
@@ -217,7 +372,6 @@ export function SharinganEye({ size = EYE }: { size?: number }) {
                 transform: [{ rotate: `${deg}deg` }],
               }}
             >
-              {/* tomoe anchored above center */}
               <View
                 style={{
                   position: 'absolute',
@@ -230,7 +384,6 @@ export function SharinganEye({ size = EYE }: { size?: number }) {
                   borderColor: 'rgba(255,120,120,0.35)',
                 }}
               >
-                {/* comma tail */}
                 <View
                   style={{
                     position: 'absolute',
@@ -251,7 +404,6 @@ export function SharinganEye({ size = EYE }: { size?: number }) {
   );
 }
 
-/** One rising ember particle (fade in, drift, fade out, repeat). */
 function Ember({
   left,
   delay,
@@ -320,7 +472,6 @@ const styles = StyleSheet.create({
   body: { alignItems: 'center', justifyContent: 'center' },
 });
 
-/** Size preset for inline use (headers, welcome hero). */
-export function SharinganEyeSmall({ size = 96 }: { size?: number }) {
-  return <SharinganEye size={size} />;
+export function SharinganEyeSmall({ size = 96, state = 'idle' }: { size?: number; state?: SharinganState }) {
+  return <SharinganEye size={size} state={state} />;
 }

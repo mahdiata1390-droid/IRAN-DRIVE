@@ -9,7 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SessionProvider, useSession } from '@/providers/session';
 import { AppErrorBoundary } from '@/components/app-error-boundary';
 import { initI18n, setLang } from '@/i18n';
-import { setTheme } from '@/lib/theme';
+import { setTheme, themeMode } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
 import { C } from '@/lib/theme';
 
@@ -92,7 +92,7 @@ export default function RootLayout() {
   return (
     <AppErrorBoundary>
       <SessionProvider>
-        <StatusBar style="light" />
+        <StatusBar style={themeMode() === 'light' ? 'dark' : 'light'} />
         <PushRegistrar />
       <Stack
         screenOptions={{

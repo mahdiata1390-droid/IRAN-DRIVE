@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '@/components/avatar';
 import { RoleBadge } from '@/components/role-badge';
-import { Button, Input } from '@/components/ui';
+import { Button, GlassSurface, Input } from '@/components/ui';
 import { useRequireAuth } from '@/hooks/use-require-auth';
 import { useSession } from '@/providers/session';
 import { supabase } from '@/lib/supabase';
@@ -107,7 +107,7 @@ export default function RoomInfoScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 40, gap: 10 }}
         ListHeaderComponent={
           <View style={{ gap: 12, marginBottom: 10 }}>
-            <View style={{ alignItems: 'center', gap: 6 }}>
+            <GlassSurface style={{ padding: 18, borderRadius: R.xl, alignItems: 'center', gap: 6 }}>
               <View
                 style={{
                   width: 84,
@@ -145,7 +145,7 @@ export default function RoomInfoScreen() {
                   ) : null}
                 </>
               )}
-            </View>
+            </GlassSurface>
 
             <Text style={{ color: C.textDim, fontWeight: '700', fontSize: 13, letterSpacing: 0.5 }}>
               {tr.common.members} ({members.length})
@@ -153,56 +153,47 @@ export default function RoomInfoScreen() {
           </View>
         }
         renderItem={({ item }) => (
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 12,
-              backgroundColor: C.bgCard,
-              borderWidth: 1,
-              borderColor: C.border,
-              borderRadius: R.m,
-              padding: 12,
-            }}
-          >
-            <Avatar
-              url={item.profile.avatar_url}
-              name={item.profile.display_name}
-              size="m"
-              online={Date.now() - new Date(item.profile.last_seen).getTime() < 120_000}
-            />
-            <View style={{ flex: 1, gap: 2 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={{ color: C.text, fontWeight: '700', fontSize: 15 }}>
-                  {item.profile.display_name}
-                </Text>
-                <RoleBadge role={item.profile.role} size="s" />
-              </View>
-              <Text style={{ color: C.textFaint, fontSize: 12 }}>
-                @{item.profile.username} · {item.room_role}
-              </Text>
-            </View>
-            {isLeader && !isClanRoom && item.user_id !== me?.id ? (
-              <View style={{ flexDirection: 'row', gap: 6 }}>
-                <Pressable
-                  onPress={() =>
-                    void changeRole(item.user_id, item.room_role === 'admin' ? 'member' : 'admin')
-                  }
-                  style={{ backgroundColor: C.surface, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 }}
-                >
-                  <Text style={{ color: C.text, fontWeight: '700', fontSize: 11.5 }}>
-                    {item.room_role === 'admin' ? '↓' : '★'}
+          <GlassSurface style={{ padding: 12, borderRadius: R.m }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Avatar
+                url={item.profile.avatar_url}
+                name={item.profile.display_name}
+                size="m"
+                online={Date.now() - new Date(item.profile.last_seen).getTime() < 120_000}
+              />
+              <View style={{ flex: 1, gap: 2 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ color: C.text, fontWeight: '700', fontSize: 15 }}>
+                    {item.profile.display_name}
                   </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => void removeMember(item.user_id)}
-                  style={{ backgroundColor: 'rgba(239,68,68,0.12)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 }}
-                >
-                  <Ionicons name="person-remove-outline" size={14} color={C.danger} />
-                </Pressable>
+                  <RoleBadge role={item.profile.role} size="s" />
+                </View>
+                <Text style={{ color: C.textFaint, fontSize: 12 }}>
+                  @{item.profile.username} · {item.room_role}
+                </Text>
               </View>
-            ) : null}
-          </View>
+              {isLeader && !isClanRoom && item.user_id !== me?.id ? (
+                <View style={{ flexDirection: 'row', gap: 6 }}>
+                  <Pressable
+                    onPress={() =>
+                      void changeRole(item.user_id, item.room_role === 'admin' ? 'member' : 'admin')
+                    }
+                    style={{ backgroundColor: C.surface, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 }}
+                  >
+                    <Text style={{ color: C.text, fontWeight: '700', fontSize: 11.5 }}>
+                      {item.room_role === 'admin' ? '↓' : '★'}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => void removeMember(item.user_id)}
+                    style={{ backgroundColor: 'rgba(239,68,68,0.12)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 }}
+                  >
+                    <Ionicons name="person-remove-outline" size={14} color={C.danger} />
+                  </Pressable>
+                </View>
+              ) : null}
+            </View>
+          </GlassSurface>
         )}
       />
     </SafeAreaView>

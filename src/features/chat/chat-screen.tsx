@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Composer } from '@/components/composer';
 import { MessageBubble, type ReactionGroup } from '@/components/message-bubble';
 import { ForwardModal, MessageActionsModal, PinnedModal, SearchModal } from '@/features/chat/chat-modals';
-import { EmptyState, Spinner } from '@/components/ui';
+import { EmptyState, GlassHeader, GlassSurface, Spinner } from '@/components/ui';
 import { useMessages, type ChatScope } from '@/hooks/use-messages';
 import { useSession } from '@/providers/session';
 import { t } from '@/i18n';
@@ -70,6 +70,7 @@ export function ChatScreen({
   const [forwardTarget, setForwardTarget] = useState<Message | null>(null);
   const listRef = useRef<FlatList<Message> | null>(null);
   const [atBottom, setAtBottom] = useState(true);
+  const [headerLift, setHeaderLift] = useState(0);
   const tr = t();
 
   const myRole = profile?.role ?? 'member';
@@ -226,9 +227,11 @@ export function ChatScreen({
           {index === firstUnreadIndex ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 16 }}>
               <View style={{ flex: 1, height: 1, backgroundColor: C.redBorder }} />
-              <Text style={{ color: C.red, fontSize: 11, fontWeight: '800', letterSpacing: 1 }}>
-                {tr.chat.newMessages}
-              </Text>
+              <GlassSurface radius={999} style={{ paddingHorizontal: 10, paddingVertical: 6, borderColor: C.redBorder }}>
+                <Text style={{ color: C.red, fontSize: 11, fontWeight: '800', letterSpacing: 1 }}>
+                  {tr.chat.newMessages}
+                </Text>
+              </GlassSurface>
               <View style={{ flex: 1, height: 1, backgroundColor: C.redBorder }} />
             </View>
           ) : null}
@@ -274,14 +277,15 @@ export function ChatScreen({
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       {/* Header */}
-      <View
+      <GlassHeader
         style={{
-          paddingTop: insets.top + 6,
+          marginHorizontal: 8,
+          marginTop: 8,
+          paddingTop: insets.top + 4,
           paddingBottom: 10,
-          paddingHorizontal: 6,
-          backgroundColor: C.bgElevated,
-          borderBottomWidth: 1,
-          borderBottomColor: C.border,
+          paddingHorizontal: 8,
+          backgroundColor: `rgba(18, 18, 23, ${0.52 + headerLift * 0.22})`,
+          borderColor: C.glassBorder,
           flexDirection: 'row',
           alignItems: 'center',
           gap: 6,
@@ -306,7 +310,7 @@ export function ChatScreen({
             <Ionicons name="bookmark" size={21} color={C.gold} />
           </Pressable>
         ) : null}
-      </View>
+      </GlassHeader>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -323,6 +327,7 @@ export function ChatScreen({
             onScroll={(e) => {
               const { contentOffset } = e.nativeEvent;
               setAtBottom(contentOffset.y < 120);
+              setHeaderLift(Math.min(contentOffset.y / 160, 1));
             }}
             scrollEventThrottle={100}
             maintainVisibleContentPosition={{ minIndexForVisible: 1 }}
@@ -377,20 +382,20 @@ export function ChatScreen({
               position: 'absolute',
               bottom: 86,
               right: 18,
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              backgroundColor: C.bgElevated,
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              backgroundColor: C.glassStrong,
               borderWidth: 1,
-              borderColor: C.border,
+              borderColor: C.glassBorder,
               alignItems: 'center',
               justifyContent: 'center',
               opacity: pressed ? 0.7 : 1,
               shadowColor: '#000',
-              shadowOpacity: 0.35,
-              shadowRadius: 8,
-              shadowOffset: { width: 0, height: 3 },
-              elevation: 5,
+              shadowOpacity: 0.28,
+              shadowRadius: 10,
+              shadowOffset: { width: 0, height: 6 },
+              elevation: 6,
             })}
           >
             <Ionicons name="chevron-down" size={22} color={C.red} />

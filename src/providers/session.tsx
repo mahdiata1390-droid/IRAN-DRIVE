@@ -7,6 +7,8 @@ import {
   useRef,
   useState,
 } from 'react';
+import { Alert } from 'react-native';
+import { router } from 'expo-router';
 import type { Session } from '@supabase/supabase-js';
 import { resolveChannelTopic, supabase } from '@/lib/supabase';
 import type { Profile } from '@/lib/types';
@@ -38,6 +40,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [profileLoading, setProfileLoading] = useState(false);
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
   const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  const clearSessionState = useCallback(() => {
+    setSession(null);
+    setProfile(null);
+    setProfileLoading(false);
+    setOnlineIds(new Set());
+    const presence = presenceChannelRef.current;
+    presenceChannelRef.current = null;
+    if (presence) void supabase.removeChannel(presence);
+  }, []);
 
   const fetchProfile = useCallback(async (userId: string) => {
     setProfileLoading(true);
@@ -71,17 +83,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setLoading(false));
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      setSession(nextSession);
       if (event === 'SIGNED_OUT') {
-        setProfile(null);
-        setProfileLoading(false);
-        setOnlineIds(new Set());
-        // removeChannel (not bare unsubscribe) also tears the channel down on the
-        // client so the topic is free again for the next session.
-        const presence = presenceChannelRef.current;
-        presenceChannelRef.current = null;
-        if (presence) void supabase.removeChannel(presence);
-      } else if (nextSession && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+        clearSessionState();
+        router.replace('/(auth)/welcome');
+        return;
+      }
+
+      setSession(nextSession);
+      if (nextSession && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
         void fetchProfile(nextSession.user.id);
       }
     });
@@ -128,8 +137,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [userId]);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-  }, []);
+    try {
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      if (error) throw error;
+      clearSessionState();
+      router.replace('/(auth)/welcome');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to sign out right now.';
+      Alert.alert('Sign out failed', message);
+    }
+  }, [clearSessionState]);
 
   const value = useMemo<SessionContextValue>(
     () => ({ session, profile, loading, profileLoading, onlineIds, refreshProfile, signOut }),

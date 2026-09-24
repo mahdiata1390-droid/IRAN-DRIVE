@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '@/components/avatar';
 import { RoleBadge } from '@/components/role-badge';
-import { Button } from '@/components/ui';
+import { Button, GlassCard, GlassHeader } from '@/components/ui';
 import { useRequireAuth } from '@/hooks/use-require-auth';
 import { useSession } from '@/providers/session';
 import { supabase } from '@/lib/supabase';
@@ -39,13 +39,27 @@ export default function ProfileScreen() {
             setClaiming(true);
             void (async () => {
               try {
-                const { error } = await supabase.rpc('claim_ownership');
-                if (error) {
-                  Alert.alert(tr.common.error, error.message);
-                } else {
-                  await refreshProfile();
-                  Alert.alert('⚡', tr.members.claimOwnership);
+                const { data: ownerRow, error: ownerError } = await supabase
+                  .from('profiles')
+                  .select('id')
+                  .eq('role', 'owner')
+                  .limit(1)
+                  .maybeSingle();
+
+                if (ownerError) throw ownerError;
+                if (ownerRow) {
+                  Alert.alert(tr.common.error, 'Ownership is already assigned to another clan member.');
+                  return;
                 }
+
+                const { error } = await supabase.rpc('claim_ownership');
+                if (error) throw error;
+
+                await refreshProfile();
+                Alert.alert('⚡', tr.members.claimOwnership);
+              } catch (error) {
+                const message = error instanceof Error ? error.message : 'Ownership transfer failed.';
+                Alert.alert(tr.common.error, message);
               } finally {
                 setClaiming(false);
               }
@@ -131,18 +145,7 @@ export default function ProfileScreen() {
           </Text>
         </View>
 
-        <View
-          style={{
-            marginHorizontal: 16,
-            marginTop: 18,
-            backgroundColor: C.bgElevated,
-            borderWidth: 1,
-            borderColor: C.border,
-            borderRadius: R.xl,
-            padding: 20,
-            alignItems: 'center',
-          }}
-        >
+        <GlassCard style={{ marginHorizontal: 16, marginTop: 18, padding: 20, alignItems: 'center' }}>
           <Avatar url={profile.avatar_url} name={profile.display_name} size="xl" online />
           <Text style={{ color: C.text, fontSize: 21, fontWeight: '800', marginTop: 12 }}>
             {profile.display_name}
@@ -156,7 +159,7 @@ export default function ProfileScreen() {
               {profile.bio}
             </Text>
           ) : null}
-        </View>
+        </GlassCard>
 
         <View style={{ marginTop: 16, gap: 10, paddingHorizontal: 16 }}>
           <Button label={tr.settings.editProfile} variant="subtle" onPress={() => router.push('/edit-profile')} />
@@ -179,18 +182,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Settings */}
-        <View
-          style={{
-            marginHorizontal: 16,
-            marginTop: 20,
-            backgroundColor: C.bgElevated,
-            borderWidth: 1,
-            borderColor: C.border,
-            borderRadius: R.xl,
-            paddingHorizontal: 16,
-            paddingVertical: 6,
-          }}
-        >
+        <GlassCard style={{ marginHorizontal: 16, marginTop: 20, paddingHorizontal: 16, paddingVertical: 6 }}>
           <Text style={{ color: C.text, fontWeight: '800', fontSize: 15, paddingVertical: 10 }}>
             {tr.settings.title}
           </Text>
@@ -221,25 +213,15 @@ export default function ProfileScreen() {
               setTheme(next);
             },
           )}
-        </View>
+        </GlassCard>
 
         {/* Details */}
-        <View
-          style={{
-            marginHorizontal: 16,
-            marginTop: 20,
-            backgroundColor: C.bgElevated,
-            borderWidth: 1,
-            borderColor: C.border,
-            borderRadius: R.xl,
-            paddingHorizontal: 16,
-          }}
-        >
+        <GlassCard style={{ marginHorizontal: 16, marginTop: 20, paddingHorizontal: 16 }}>
           {row('at', tr.auth.username, `@${profile.username}`)}
           {row('shield-checkmark', tr.profile.role, roleLabel(profile.role))}
           {row('game-controller', tr.profile.uid, profile.cod_uid ?? '—')}
           {row('calendar', tr.profile.joinedOn, new Date(profile.created_at).toLocaleDateString())}
-        </View>
+        </GlassCard>
 
         <Text style={{ color: C.textFaint, fontSize: 11.5, textAlign: 'center', marginTop: 28, letterSpacing: 1 }}>
           UCHIHA CLAN · CALL OF DUTY MOBILE

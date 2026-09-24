@@ -5,6 +5,8 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '@/components/avatar';
 import { GifPicker } from '@/components/gif-picker';
+import { SharinganEyeSmall } from '@/components/sharingan-eye';
+import { GlassSurface } from '@/components/ui';
 import { t } from '@/i18n';
 import { showAlert } from '@/lib/alert';
 import { C, R } from '@/lib/theme';
@@ -264,9 +266,10 @@ export function Composer({
 
   if (voice.recording) {
     return (
-      <View style={{ borderTopWidth: 1, borderTopColor: C.border, backgroundColor: C.bgElevated, padding: 12, gap: 10 }}>
+      <GlassSurface tone="strong" radius={22} style={{ margin: 8, padding: 12, gap: 10, borderColor: 'rgba(220,38,38,0.28)' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: C.danger }} />
+          <SharinganEyeSmall size={26} state="recording" />
           <Text style={{ color: C.text, fontWeight: '700' }}>{tr.voice.recording}</Text>
           <Text style={{ color: C.textDim, fontVariant: ['tabular-nums'] }}>
             {Math.floor(voice.durationMs / 1000)}s
@@ -313,12 +316,12 @@ export function Composer({
             <Text style={{ color: '#fff', fontWeight: '800' }}>{tr.voice.release}</Text>
           </Pressable>
         </View>
-      </View>
+      </GlassSurface>
     );
   }
 
   return (
-    <View style={{ borderTopWidth: 1, borderTopColor: C.border, backgroundColor: C.bgElevated }}>
+    <GlassSurface tone="strong" radius={26} style={{ borderTopLeftRadius: 26, borderTopRightRadius: 26, marginHorizontal: 8, marginBottom: 8, overflow: 'hidden', borderColor: C.glassBorder }}>
       {uploading ? (
         <View style={{ paddingHorizontal: 14, paddingVertical: 8, gap: 4 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -341,17 +344,14 @@ export function Composer({
       ) : null}
 
       {mentionSuggestions.length > 0 && (
-        <View
-          style={{
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            gap: 6,
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            borderBottomWidth: 1,
-            borderBottomColor: C.border,
-          }}
-        >
+        <GlassSurface radius={16} style={{ marginHorizontal: 10, marginTop: 10, paddingHorizontal: 12, paddingVertical: 8, borderColor: C.glassBorder }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              gap: 6,
+            }}
+          >
           {mentionSuggestions.map((m) => (
             <Pressable
               key={m.id}
@@ -372,11 +372,12 @@ export function Composer({
               <Text style={{ color: C.text, fontSize: 13, fontWeight: '600' }}>@{m.username}</Text>
             </Pressable>
           ))}
-        </View>
+          </View>
+        </GlassSurface>
       )}
 
       {emojiBar && (
-        <View style={{ paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: C.border, gap: 8 }}>
+        <GlassSurface radius={18} style={{ marginHorizontal: 10, marginTop: 10, paddingHorizontal: 12, paddingVertical: 8, gap: 8, borderColor: C.glassBorder }}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             {QUICK_EMOJI.map((e) => (
               <Pressable key={e} onPress={() => setText((t) => t + e)} style={{ padding: 4 }}>
@@ -391,29 +392,26 @@ export function Composer({
               </Pressable>
             ))}
           </View>
-        </View>
+        </GlassSurface>
       )}
 
       {banner && (
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingHorizontal: 14,
-            paddingVertical: 7,
-            borderLeftWidth: 3,
-            borderLeftColor: C.red,
-            backgroundColor: 'rgba(220,38,38,0.08)',
-          }}
-        >
-          <Text style={{ color: C.textDim, fontSize: 12.5 }} numberOfLines={1}>
-            {banner.label}
-          </Text>
-          <Pressable onPress={banner.onDismiss} hitSlop={10}>
-            <Ionicons name="close" size={18} color={C.textDim} />
-          </Pressable>
-        </View>
+        <GlassSurface radius={14} style={{ marginHorizontal: 10, marginTop: 10, paddingHorizontal: 14, paddingVertical: 7, borderColor: C.redBorder }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <Text style={{ color: C.textDim, fontSize: 12.5 }} numberOfLines={1}>
+              {banner.label}
+            </Text>
+            <Pressable onPress={banner.onDismiss} hitSlop={10}>
+              <Ionicons name="close" size={18} color={C.textDim} />
+            </Pressable>
+          </View>
+        </GlassSurface>
       )}
 
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', padding: 8, gap: 8 }}>
@@ -476,9 +474,9 @@ export function Composer({
             flex: 1,
             maxHeight: 110,
             minHeight: 40,
-            backgroundColor: C.bgCard,
+            backgroundColor: C.glass,
             borderWidth: 1,
-            borderColor: C.border,
+            borderColor: C.glassBorder,
             borderRadius: 20,
             paddingHorizontal: 14,
             paddingVertical: 9,
@@ -496,9 +494,9 @@ export function Composer({
               borderRadius: 21,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: C.bgCard,
+              backgroundColor: C.glass,
               borderWidth: 1,
-              borderColor: C.border,
+              borderColor: C.glassBorder,
             }}
           >
             <Ionicons name="mic-outline" size={20} color={C.textDim} />
@@ -526,6 +524,6 @@ export function Composer({
         onClose={() => setGifOpen(false)}
         onPick={(gif) => void sendGif(gif)}
       />
-    </View>
+    </GlassSurface>
   );
 }
