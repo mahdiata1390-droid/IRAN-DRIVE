@@ -33,6 +33,7 @@ export function GlassSurface({ children, style, tone = 'default', radius = R.xl,
         style,
       ]}
     >
+      <View pointerEvents="none" style={[styles.glassHighlight, { borderRadius: radius }]} />
       {children}
     </View>
   );
@@ -323,11 +324,20 @@ export function Spinner() {
 export const styles = StyleSheet.create({
   glassBase: {
     borderWidth: 1,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOpacity: 0.18,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
     elevation: 6,
+  },
+  glassHighlight: {
+    position: 'absolute',
+    top: 0,
+    left: 12,
+    right: 12,
+    height: 1,
+    backgroundColor: C.glassHighlight,
   },
   glassCard: {
     padding: 18,

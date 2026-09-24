@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import type { Session } from '@supabase/supabase-js';
 import { resolveChannelTopic, supabase } from '@/lib/supabase';
@@ -137,17 +136,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [userId]);
 
   const signOut = useCallback(async () => {
+    // Clear the local session first so web logout never waits on auth network state.
+    clearSessionState();
+    router.replace('/(auth)/welcome');
     try {
-      // Local sign-out keeps the web/PWA logout path independent of a stale
-      // refresh token or a temporarily unavailable auth endpoint.
       await supabase.auth.signOut({ scope: 'local' });
-      clearSessionState();
-      router.replace('/(auth)/welcome');
-    } catch (error) {
-      clearSessionState();
-      router.replace('/(auth)/welcome');
-      const message = error instanceof Error ? error.message : 'Unable to sign out right now.';
-      Alert.alert('Sign out failed', message);
+    } catch {
+      // The local state is already cleared; a stale remote token is harmless.
     }
   }, [clearSessionState]);
 
