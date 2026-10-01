@@ -124,10 +124,9 @@ const SharinganIris = ({size, irisColor, depthColor, rimColor, highlightColor, i
   irisR: number; pupilR: number; glowColor: string; glowR: number;
   glowOpacity: number; shimmerOpacity: number; shimmerX: number; shimmerY: number; shimmerColor: string;
   tomoeColor: string; tomoeInnerColor: string; tomoeStroke: string;
-}) => {
-  const scale = size / VW;
+}) => {  const scale = size / VW;
   return (
-    <Svg width={size} height={size * (VH / VW)} viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="xMidYMid meet">
+    <>
       <Defs>
         <RadialGradient id="irisGrad" cx="50%" cy="45%" rx="56%" ry="54%">
           <Stop offset="0%" stopColor={irisColor} />
@@ -160,7 +159,7 @@ const SharinganIris = ({size, irisColor, depthColor, rimColor, highlightColor, i
       <TomoeMark x={CX * scale} y={(CY - 34 * scale)} rot={120} scale={1.1} color={tomoeColor} innerColor={tomoeInnerColor} stroke={tomoeStroke} />
       <TomoeMark x={CX * scale} y={(CY - 34 * scale)} rot={240} scale={1.1} color={tomoeColor} innerColor={tomoeInnerColor} stroke={tomoeStroke} />
       <Ellipse cx={CX * scale + shimmerX * scale} cy={CY * scale + shimmerY * scale} rx={12 * scale} ry={4 * scale} fill="url(#shimmerGrad)" opacity={shimmerOpacity * 0.5} />
-    </Svg>
+    </>
   );
 };
 
@@ -171,10 +170,9 @@ const RinneganIris = ({size, irisColor, depthColor, rimColor, glowColor, irisR, 
   glowR: number; glowOpacity: number; rippleR: number; rippleOpacity: number; rippleScale: number;
   ring1Color: string; ring1Width: number; ring2Color: string; ring2Width: number;
   ring3Color: string; ring3Width: number; ring4Color: string; ring4Width: number;
-}) => {
-  const scale = size / VW;
+}) => {  const scale = size / VW;
   return (
-    <Svg width={size} height={size * (VH / VW)} viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="xMidYMid meet">
+    <>
       <Defs>
         <RadialGradient id="rinneganIris" cx="50%" cy="45%" rx="56%" ry="54%">
           <Stop offset="0%" stopColor={irisColor} />
@@ -203,66 +201,49 @@ const RinneganIris = ({size, irisColor, depthColor, rimColor, glowColor, irisR, 
       <Circle cx={CX * scale} cy={CY * scale} r={glowR * scale} fill={glowColor} opacity={glowOpacity} />
       <Circle cx={CX * scale} cy={CY * scale} r={rippleR * scale * rippleScale} fill="none" stroke={ring1Color} strokeWidth={2 * scale} opacity={rippleOpacity} />
       <Circle cx={CX * scale} cy={CY * scale} r={rippleR * scale * rippleScale * 0.85} fill="none" stroke={ring2Color} strokeWidth={1.6 * scale} opacity={rippleOpacity * 0.7} />
-    </Svg>
+    </>
   );
 };
 
 export function SharinganSvg({size, anim}: {size: number; anim: any}) {
-  const scale = size / VW;
-  const irisR = 44 * scale;
-  const pupilR = 14 * scale;
-  const glowR = 28 * scale;
-  const irisColor = '#e5222a';
-  const depthColor = '#7a0d18';
-  const rimColor = '#3a0408';
-  const highlightColor = '#ffffff';
-  const glowColor = 'rgba(255,50,50,0.45)';
-  const shimmerColor = 'rgba(255,200,200,0.6)';
-  const tomoeColor = '#1a0408';
-  const tomoeInnerColor = '#5a141c';
-  const tomoeStroke = 'rgba(255,180,180,0.5)';
+  const irisWrapStyle = useAnimatedStyle(() => ({
+    transform: [{scale: anim.irisScale.value}],
+    opacity: Math.min(1, anim.glowOpacity.value + 0.25),
+  }));
   return (
-    <AnimatedG style={{transform: [{scale: anim.irisScale}], opacity: anim.glowOpacity}}>
-      <SharinganIris
-        size={size}
-        irisColor={irisColor} depthColor={depthColor} rimColor={rimColor} highlightColor={highlightColor}
-        irisR={irisR} pupilR={pupilR} glowColor={glowColor} glowR={glowR}
-        glowOpacity={anim.glowOpacity} shimmerOpacity={anim.shimmerOpacity}
-        shimmerX={anim.shimmerX} shimmerY={anim.shimmerY} shimmerColor={shimmerColor}
-        tomoeColor={tomoeColor} tomoeInnerColor={tomoeInnerColor} tomoeStroke={tomoeStroke}
-      />
-    </AnimatedG>
+    <Animated.View style={irisWrapStyle}>
+      <Svg width={size} height={size * (VH / VW)} viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="xMidYMid meet">
+        <SharinganIris
+          size={size}
+          irisColor="#e5222a" depthColor="#7a0d18" rimColor="#3a0408" highlightColor="#ffffff"
+          irisR={44} pupilR={14} glowColor="rgba(255,50,50,0.45)" glowR={28}
+          glowOpacity={0.55} shimmerOpacity={0.4}
+          shimmerX={0} shimmerY={0} shimmerColor="rgba(255,200,200,0.6)"
+          tomoeColor="#1a0408" tomoeInnerColor="#5a141c" tomoeStroke="rgba(255,180,180,0.5)"
+        />
+      </Svg>
+    </Animated.View>
   );
 };
 
 export function RinneganSvg({size, anim}: {size: number; anim: any}) {
-  const scale = size / VW;
-  const irisR = 46 * scale;
-  const pupilR = 13 * scale;
-  const glowR = 30 * scale;
-  const irisColor = '#7f58c8';
-  const depthColor = '#3f287f';
-  const rimColor = '#1f1540';
-  const glowColor = 'rgba(160,112,255,0.4)';
-  const ring1Color = '#502f8c';
-  const ring1Width = 4;
-  const ring2Color = '#372062';
-  const ring2Width = 3.5;
-  const ring3Color = '#5a38a6';
-  const ring3Width = 3;
-  const ring4Color = '#9b6fd4';
-  const ring4Width = 2.5;
+  const irisWrapStyle = useAnimatedStyle(() => ({
+    transform: [{scale: anim.irisScale.value}],
+    opacity: Math.min(1, anim.glowOpacity.value + 0.25),
+  }));
   return (
-    <AnimatedG style={{transform: [{scale: anim.irisScale}], opacity: anim.glowOpacity}}>
-      <RinneganIris
-        size={size}
-        irisColor={irisColor} depthColor={depthColor} rimColor={rimColor}
-        glowColor={glowColor} irisR={irisR} pupilR={pupilR}
-        glowR={glowR} glowOpacity={anim.glowOpacity} rippleR={anim.rippleR} rippleOpacity={anim.rippleOpacity} rippleScale={anim.rippleScale}
-        ring1Color={ring1Color} ring1Width={ring1Width} ring2Color={ring2Color} ring2Width={ring2Width}
-        ring3Color={ring3Color} ring3Width={ring3Width} ring4Color={ring4Color} ring4Width={ring4Width}
-      />
-    </AnimatedG>
+    <Animated.View style={irisWrapStyle}>
+      <Svg width={size} height={size * (VH / VW)} viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="xMidYMid meet">
+        <RinneganIris
+          size={size}
+          irisColor="#7f58c8" depthColor="#3f287f" rimColor="#1f1540"
+          glowColor="rgba(160,112,255,0.4)" irisR={46} pupilR={13}
+          glowR={30} glowOpacity={0.55} rippleR={52} rippleOpacity={0.15} rippleScale={1}
+          ring1Color="#502f8c" ring1Width={4} ring2Color="#372062" ring2Width={3.5}
+          ring3Color="#5a38a6" ring3Width={3} ring4Color="#9b6fd4" ring4Width={2.5}
+        />
+      </Svg>
+    </Animated.View>
   );
 };
 
