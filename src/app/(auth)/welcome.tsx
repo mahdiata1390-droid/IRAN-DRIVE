@@ -56,7 +56,7 @@ export default function WelcomeScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Animated.View style={[styles.hero, eyeStyle]}>
-          <SharinganEye size={190} />
+          <SharinganEye size={172} />
         </Animated.View>
 
         <Animated.View style={[styles.titleBlock, textStyle]}>
@@ -78,10 +78,9 @@ export default function WelcomeScreen() {
               </Text>
             </Pressable>
           </Link>
-        </Animated.View>
-
-        <Text style={styles.footer}>UCHIHA Clan · Call of Duty Mobile</Text>
+        <Text style={styles.footer}>UCHIHA Clan · Call of Duty Mobility</Text>
       </ScrollView>
+      <View style={styles.groundLine} />
     </View>
   );
 }
@@ -125,5 +124,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 44,
     letterSpacing: 1,
+  },
+  groundLine: {
+    position: 'absolute',
+    top: 208,
+    left: 40,
+    right: 40,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(220,38,38,0.22)',
+    borderRadius: 2,
   },
 });

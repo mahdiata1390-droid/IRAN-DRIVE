@@ -25,9 +25,8 @@ export function UchihaEye({
   style,
 }: UchihaEyeProps) {
   const anim = useEyeAnimation(state, type, intensity);
-
+  const aspect = VH / VW;
   const containerStyle = useMemo<ViewStyle>(() => {
-    const aspect = VH / VW;
     return {
       width: size,
       height: Math.round(size * aspect),
@@ -37,8 +36,6 @@ export function UchihaEye({
       ...style,
     };
   }, [size, style]);
-
-  const aspect = VH / VW;
   return (
     <Animated.View style={containerStyle}>
       {animated ? (
