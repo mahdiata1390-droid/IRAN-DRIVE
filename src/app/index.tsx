@@ -107,9 +107,11 @@ export default function Index() {
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
-      <Animated.View style={eyeStyle}>
-        <SharinganEye size={Platform.OS === 'web' ? 220 : 250} />
-      </Animated.View>
+      <View style={styles.eyeStack}>
+        <Animated.View style={eyeStyle}>
+          <SharinganEye size={Platform.OS === 'web' ? 208 : 230} />
+        </Animated.View>
+      </View>
       <Animated.View style={[styles.titleBlock, titleStyle]}>
         <Text style={styles.title}>UCHIHA</Text>
         <Text style={styles.subtitle}>{tr.auth.appName}</Text>
@@ -120,7 +122,8 @@ export default function Index() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#050203', alignItems: 'center', justifyContent: 'center' },
-  titleBlock: { alignItems: 'center', marginTop: 34 },
+  eyeStack: { alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  titleBlock: { alignItems: 'center', marginTop: 18 },
   title: {
     color: C.text,
     fontSize: 40,

@@ -27,12 +27,11 @@ export default function WelcomeScreen() {
     textOpacity.value = withDelay(350, withTiming(1, { duration: 550 }));
     textY.value = withDelay(350, withTiming(0, { duration: 550, easing: Easing.out(Easing.cubic) }));
     actionsOpacity.value = withDelay(700, withTiming(1, { duration: 550 }));
-  }, [eyeOpacity, eyeScale, textOpacity, textY, actionsOpacity]);
-
-  const eyeStyle = useAnimatedStyle(() => ({
+  }, [eyeOpacity, eyeScale, textOpacity, textY, actionsOpacity]);  const eyeStyle = useAnimatedStyle(() => ({
     opacity: eyeOpacity.value,
     transform: [{ scale: eyeScale.value }],
   }));
+  const centerStack = styles.centerStack;
   const textStyle = useAnimatedStyle(() => ({
     opacity: textOpacity.value,
     transform: [{ translateY: textY.value }],
@@ -50,9 +49,10 @@ export default function WelcomeScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Animated.View style={[styles.hero, eyeStyle]}>
-          <SharinganEye size={172} />
-        </Animated.View>
+        <View style={centerStack}>
+          <Animated.View style={[styles.hero, eyeStyle]}>
+            <SharinganEye size={172} />
+          </Animated.View>
 
         <Animated.View style={[styles.titleBlock, textStyle]}>
           <Text style={styles.title}>UCHIHA CLAN</Text>
@@ -81,6 +81,7 @@ export default function WelcomeScreen() {
           </Link>
           <Text style={styles.footer}>UCHIHA Clan · Call of Duty Mobility</Text>
         </Animated.View>
+        </View>
       </ScrollView>
       <View style={styles.groundLine} />
     </View>
@@ -91,14 +92,15 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#050203' },
   scroll: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     padding: 28,
-    paddingTop: 70,
+    paddingTop: 96,
     paddingBottom: 40,
   },
-  hero: { alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  titleBlock: { alignItems: 'center', marginBottom: 34 },
+  hero: { alignItems: 'center', justifyContent: 'center' },
+  centerStack: { justifyContent: 'center', alignItems: 'center' },
+  titleBlock: { alignItems: 'center', marginTop: 18, marginBottom: 34 },
   title: {
     color: C.text,
     fontSize: 36,
