@@ -124,8 +124,7 @@ const SharinganIris = ({size, irisColor, depthColor, rimColor, highlightColor, i
   irisR: number; pupilR: number; glowColor: string; glowR: number;
   glowOpacity: number; shimmerOpacity: number; shimmerX: number; shimmerY: number; shimmerColor: string;
   tomoeColor: string; tomoeInnerColor: string; tomoeStroke: string;
-}) => {  const scale = size / VW;
-  return (
+}) => {  return (
     <>
       <Defs>
         <RadialGradient id="irisGrad" cx="50%" cy="45%" rx="56%" ry="54%">
@@ -148,17 +147,17 @@ const SharinganIris = ({size, irisColor, depthColor, rimColor, highlightColor, i
           <Stop offset="100%" stopColor={irisColor} stopOpacity="0" />
         </RadialGradient>
       </Defs>
-      <Circle cx={CX * scale} cy={CY * scale} r={irisR * scale} fill="url(#irisGrad)" stroke={rimColor} strokeWidth={2} />
-      <Circle cx={CX * scale} cy={CY * scale} r={pupilR * scale} fill="url(#pupilGrad)" stroke="#220507" strokeWidth={2} />
-      <Circle cx={CX * scale} cy={CY * scale} r={pupilR * 0.55 * scale} fill="#000000" />
-      <Circle cx={CX * scale - 2 * scale} cy={CY * scale - 2 * scale} r={1.5 * scale} fill={highlightColor} opacity={0.95} />
-      <Circle cx={CX * scale + 2 * scale} cy={CY * scale + 1.5 * scale} r={0.7 * scale} fill={highlightColor} opacity={0.4} />
-      <Circle cx={CX * scale} cy={CY * scale} r={glowR * scale} fill={glowColor} opacity={glowOpacity} />
-      <Circle cx={CX * scale} cy={CY * scale} r={22 * scale} fill={shimmerColor} opacity={shimmerOpacity} />
-      <TomoeMark x={CX * scale} y={(CY - 34 * scale)} rot={0} scale={1.1} color={tomoeColor} innerColor={tomoeInnerColor} stroke={tomoeStroke} />
-      <TomoeMark x={CX * scale} y={(CY - 34 * scale)} rot={120} scale={1.1} color={tomoeColor} innerColor={tomoeInnerColor} stroke={tomoeStroke} />
-      <TomoeMark x={CX * scale} y={(CY - 34 * scale)} rot={240} scale={1.1} color={tomoeColor} innerColor={tomoeInnerColor} stroke={tomoeStroke} />
-      <Ellipse cx={CX * scale + shimmerX * scale} cy={CY * scale + shimmerY * scale} rx={12 * scale} ry={4 * scale} fill="url(#shimmerGrad)" opacity={shimmerOpacity * 0.5} />
+      <Circle cx={CX} cy={CY} r={irisR} fill="url(#irisGrad)" stroke={rimColor} strokeWidth={2} />
+      <Circle cx={CX} cy={CY} r={pupilR} fill="url(#pupilGrad)" stroke="#220507" strokeWidth={2} />
+      <Circle cx={CX} cy={CY} r={pupilR * 0.55} fill="#000000" />
+      <Circle cx={CX - 2} cy={CY - 2} r={1.5} fill={highlightColor} opacity={0.95} />
+      <Circle cx={CX + 2} cy={CY + 1.5} r={0.7} fill={highlightColor} opacity={0.4} />
+      <Circle cx={CX} cy={CY} r={glowR} fill={glowColor} opacity={glowOpacity} />
+      <Circle cx={CX} cy={CY} r={22} fill={shimmerColor} opacity={shimmerOpacity} />
+      <TomoeMark x={CX} y={CY - 34} rot={0} scale={1.1} color={tomoeColor} innerColor={tomoeInnerColor} stroke={tomoeStroke} />
+      <TomoeMark x={CX} y={CY - 34} rot={120} scale={1.1} color={tomoeColor} innerColor={tomoeInnerColor} stroke={tomoeStroke} />
+      <TomoeMark x={CX} y={CY - 34} rot={240} scale={1.1} color={tomoeColor} innerColor={tomoeInnerColor} stroke={tomoeStroke} />
+      <Ellipse cx={CX + shimmerX} cy={CY + shimmerY} rx={12} ry={4} fill="url(#shimmerGrad)" opacity={shimmerOpacity * 0.5} />
     </>
   );
 };
@@ -170,8 +169,7 @@ const RinneganIris = ({size, irisColor, depthColor, rimColor, glowColor, irisR, 
   glowR: number; glowOpacity: number; rippleR: number; rippleOpacity: number; rippleScale: number;
   ring1Color: string; ring1Width: number; ring2Color: string; ring2Width: number;
   ring3Color: string; ring3Width: number; ring4Color: string; ring4Width: number;
-}) => {  const scale = size / VW;
-  return (
+}) => {  return (
     <>
       <Defs>
         <RadialGradient id="rinneganIris" cx="50%" cy="45%" rx="56%" ry="54%">
@@ -189,18 +187,18 @@ const RinneganIris = ({size, irisColor, depthColor, rimColor, glowColor, irisR, 
           <Stop offset="100%" stopColor={glowColor} stopOpacity="0" />
         </RadialGradient>
       </Defs>
-      <Circle cx={CX * scale} cy={CY * scale} r={irisR * scale} fill="url(#rinneganIris)" stroke={rimColor} strokeWidth={2} />
-      <Circle cx={CX * scale} cy={CY * scale} r={irisR * 0.75 * scale} fill="none" stroke={ring1Color} strokeWidth={ring1Width * scale} />
-      <Circle cx={CX * scale} cy={CY * scale} r={irisR * 0.5 * scale} fill="none" stroke={ring2Color} strokeWidth={ring2Width * scale} />
-      <Circle cx={CX * scale} cy={CY * scale} r={irisR * 0.27 * scale} fill="none" stroke={ring3Color} strokeWidth={ring3Width * scale} />
-      <Circle cx={CX * scale} cy={CY * scale} r={irisR * 0.13 * scale} fill="none" stroke={ring4Color} strokeWidth={ring4Width * scale} />
-      <Circle cx={CX * scale} cy={CY * scale} r={pupilR * scale} fill="url(#rinneganPupil)" stroke="#1a0020" strokeWidth={2} />
-      <Circle cx={CX * scale} cy={CY * scale} r={pupilR * 0.55 * scale} fill="#000000" />
-      <Circle cx={CX * scale - 2 * scale} cy={CY * scale - 2 * scale} r={1.5 * scale} fill="rgba(255,255,255,0.9)" />
-      <Circle cx={CX * scale + 2 * scale} cy={CY * scale + 1.5 * scale} r={0.7 * scale} fill="rgba(255,255,255,0.4)" />
-      <Circle cx={CX * scale} cy={CY * scale} r={glowR * scale} fill={glowColor} opacity={glowOpacity} />
-      <Circle cx={CX * scale} cy={CY * scale} r={rippleR * scale * rippleScale} fill="none" stroke={ring1Color} strokeWidth={2 * scale} opacity={rippleOpacity} />
-      <Circle cx={CX * scale} cy={CY * scale} r={rippleR * scale * rippleScale * 0.85} fill="none" stroke={ring2Color} strokeWidth={1.6 * scale} opacity={rippleOpacity * 0.7} />
+      <Circle cx={CX} cy={CY} r={irisR} fill="url(#rinneganIris)" stroke={rimColor} strokeWidth={2} />
+      <Circle cx={CX} cy={CY} r={irisR * 0.75} fill="none" stroke={ring1Color} strokeWidth={ring1Width} />
+      <Circle cx={CX} cy={CY} r={irisR * 0.5} fill="none" stroke={ring2Color} strokeWidth={ring2Width} />
+      <Circle cx={CX} cy={CY} r={irisR * 0.27} fill="none" stroke={ring3Color} strokeWidth={ring3Width} />
+      <Circle cx={CX} cy={CY} r={irisR * 0.13} fill="none" stroke={ring4Color} strokeWidth={ring4Width} />
+      <Circle cx={CX} cy={CY} r={pupilR} fill="url(#rinneganPupil)" stroke="#1a0020" strokeWidth={2} />
+      <Circle cx={CX} cy={CY} r={pupilR * 0.55} fill="#000000" />
+      <Circle cx={CX - 2} cy={CY - 2} r={1.5} fill="rgba(255,255,255,0.9)" />
+      <Circle cx={CX + 2} cy={CY + 1.5} r={0.7} fill="rgba(255,255,255,0.4)" />
+      <Circle cx={CX} cy={CY} r={glowR} fill={glowColor} opacity={glowOpacity} />
+      <Circle cx={CX} cy={CY} r={rippleR * rippleScale} fill="none" stroke={ring1Color} strokeWidth={2} opacity={rippleOpacity} />
+      <Circle cx={CX} cy={CY} r={rippleR * rippleScale * 0.85} fill="none" stroke={ring2Color} strokeWidth={1.6} opacity={rippleOpacity * 0.7} />
     </>
   );
 };
