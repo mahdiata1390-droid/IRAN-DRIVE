@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Link, Stack } from 'expo-router';
 import Animated, {
@@ -13,11 +13,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { t } from '@/i18n';
 import { C, R } from '@/lib/theme';
 
-/**
- * Auth landing: animated Sharingan + UCHIHA CLAN identity, tagline, and the
- * two entry actions (Get Started / Log in). Shown after onboarding or on
- * subsequent launches without a session.
- */
 export default function WelcomeScreen() {
   const tr = t();
   const eyeOpacity = useSharedValue(0);
@@ -67,18 +62,25 @@ export default function WelcomeScreen() {
 
         <Animated.View style={[styles.actions, actionsStyle]}>
           <Link href="/(auth)/sign-up" asChild>
-            <Pressable style={({ pressed }) => [styles.primaryBtn, pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 }]}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.primaryBtn,
+                pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 },
+              ]}
+            >
               <Text style={styles.primaryText}>{tr.onboarding.getStarted}</Text>
             </Pressable>
           </Link>
           <Link href="/(auth)/login" asChild>
             <Pressable hitSlop={8}>
               <Text style={styles.loginText}>
-                {tr.onboarding.haveAccount} <Text style={styles.loginLink}>{tr.onboarding.logIn}</Text>
+                {tr.onboarding.haveAccount}{' '}
+                <Text style={styles.loginLink}>{tr.onboarding.logIn}</Text>
               </Text>
             </Pressable>
           </Link>
-        <Text style={styles.footer}>UCHIHA Clan · Call of Duty Mobility</Text>
+          <Text style={styles.footer}>UCHIHA Clan · Call of Duty Mobility</Text>
+        </Animated.View>
       </ScrollView>
       <View style={styles.groundLine} />
     </View>
@@ -87,7 +89,14 @@ export default function WelcomeScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#050203' },
-  scroll: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 28, paddingTop: 70, paddingBottom: 40 },
+  scroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 28,
+    paddingTop: 70,
+    paddingBottom: 40,
+  },
   hero: { alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   titleBlock: { alignItems: 'center', marginBottom: 34 },
   title: {
