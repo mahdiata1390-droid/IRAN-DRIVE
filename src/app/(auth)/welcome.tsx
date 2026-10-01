@@ -8,7 +8,7 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { SharinganEye } from '@/components/sharingan-eye';
+import { SharinganEye } from '@/components/shared-eyes';
 import { LinearGradient } from 'expo-linear-gradient';
 import { t } from '@/i18n';
 import { C, R } from '@/lib/theme';

@@ -6,7 +6,7 @@ import { useSharedValue, useAnimatedStyle, withTiming, runOnJS, interpolate } fr
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SharinganEye } from '@/components/sharingan-eye';
+import { SharinganEye } from '@/components/shared-eyes';
 import { Ionicons } from '@expo/vector-icons';
 import { t } from '@/i18n';
 import { C, R } from '@/lib/theme';

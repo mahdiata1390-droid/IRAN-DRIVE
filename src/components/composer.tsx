@@ -5,7 +5,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '@/components/avatar';
 import { GifPicker } from '@/components/gif-picker';
-import { SharinganEyeSmall } from '@/components/sharingan-eye';
+import { SharinganEye } from '@/components/shared-eyes';
 import { GlassSurface } from '@/components/ui';
 import { t } from '@/i18n';
 import { showAlert } from '@/lib/alert';
@@ -269,7 +269,7 @@ export function Composer({
       <GlassSurface tone="strong" radius={22} style={{ margin: 8, padding: 12, gap: 10, borderColor: 'rgba(220,38,38,0.28)' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: C.danger }} />
-          <SharinganEyeSmall size={26} state="recording" />
+          <SharinganEye size={26} state="recording" />
           <Text style={{ color: C.text, fontWeight: '700' }}>{tr.voice.recording}</Text>
           <Text style={{ color: C.textDim, fontVariant: ['tabular-nums'] }}>
             {Math.floor(voice.durationMs / 1000)}s

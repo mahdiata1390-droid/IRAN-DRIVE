@@ -12,7 +12,7 @@ import type { Session } from '@supabase/supabase-js';
 import { resolveChannelTopic, supabase } from '@/lib/supabase';
 import type { Profile } from '@/lib/types';
 
-interface SessionContextValue {
+export interface SessionContextValue {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;

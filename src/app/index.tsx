@@ -12,7 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSession } from '@/providers/session';
-import { SharinganEye } from '@/components/sharingan-eye';
+import { SharinganEye } from '@/components/shared-eyes';
 import { t } from '@/i18n';
 import { C } from '@/lib/theme';
 

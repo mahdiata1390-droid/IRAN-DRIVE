@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '@/components/avatar';
 import { RoleBadge } from '@/components/role-badge';
-import { SharinganEye } from '@/components/sharingan-eye';
+import { SharinganEye } from '@/components/shared-eyes';
 import { Button, GlassCard, GlassHeader } from '@/components/ui';
 import { useRequireAuth } from '@/hooks/use-require-auth';
 import { useSession } from '@/providers/session';
@@ -141,10 +141,10 @@ export default function ProfileScreen() {
         </View>
 
         <GlassCard style={{ marginHorizontal: 16, marginTop: 18, padding: 20, alignItems: 'center' }}>
-          <SharinganEye size={104} state={isMod ? 'active' : 'idle'} variant="mangekyou" />
+          <SharinganEye size={104} state={isMod ? 'active' : 'idle'} intensity={1.3} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 8 }}>
-            <SharinganEye size={58} state="idle" variant="sharingan" />
-            <SharinganEye size={58} state="active" variant="rinnegan" />
+            <SharinganEye size={58} state="idle" />
+            <SharinganEye size={58} state="active" type="rinnegan" />
           </View>
           <Avatar url={profile.avatar_url} name={profile.display_name} size="xl" online />
           <Text style={{ color: C.text, fontSize: 21, fontWeight: '800', marginTop: 12 }}>
