@@ -3,6 +3,7 @@ import { Alert, ScrollView, Text, View } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Button, Input } from '@/components/ui';
 import { useRequireAuth } from '@/hooks/use-require-auth';
+import { markRoomCreated } from '@/hooks/use-chats';
 import { useSession } from '@/providers/session';
 import { supabase } from '@/lib/supabase';
 import { C } from '@/lib/theme';
@@ -74,6 +75,7 @@ export default function NewRoomScreen() {
       Alert.alert('Room created, but creator membership failed', membershipError.message);
       return;
     }
+    markRoomCreated();
     router.replace(`/room/${data.id}`);
   };
 

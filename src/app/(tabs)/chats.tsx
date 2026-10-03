@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '@/components/avatar';
 import { EmptyState, GlassIconButton, GlassPill, GlassSurface, Spinner } from '@/components/ui';
-import { useChats } from '@/hooks/use-chats';
+import { consumeRoomCreated, useChats } from '@/hooks/use-chats';
 import { useNotifications } from '@/hooks/use-notifications';
 import { useRequireAuth } from '@/hooks/use-require-auth';
 import { useChatSettings, scopeKey } from '@/hooks/use-chat-settings';
@@ -31,6 +31,7 @@ export default function ChatsScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      if (consumeRoomCreated()) setFilter('all');
       if (hasFocused.current) void refresh();
       else hasFocused.current = true;
     }, [refresh]),

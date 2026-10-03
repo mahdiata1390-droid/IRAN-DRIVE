@@ -2,6 +2,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { resolveChannelTopic, supabase } from '@/lib/supabase';
 import type { DmListItem, Room, UnreadRow } from '@/lib/types';
 
+let roomCreatedPending = false;
+
+export function markRoomCreated(): void {
+  roomCreatedPending = true;
+}
+
+export function consumeRoomCreated(): boolean {
+  const pending = roomCreatedPending;
+  roomCreatedPending = false;
+  return pending;
+}
+
 export function useChats() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [dms, setDms] = useState<DmListItem[]>([]);
