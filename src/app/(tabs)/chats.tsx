@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Pressable, Text, TextInput, View } from 'react-native';
-import { Link, Stack, router } from 'expo-router';
+import { Link, Stack, router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '@/components/avatar';
@@ -27,6 +27,14 @@ export default function ChatsScreen() {
   const { get, update } = useChatSettings(session?.user.id ?? null);
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
+  const hasFocused = useRef(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (hasFocused.current) void refresh();
+      else hasFocused.current = true;
+    }, [refresh]),
+  );
 
   const roomSettings = (r: Room) => get('room', r.id);
   const dmSettings = (d: DmListItem) => get('dm', d.conversation_id);

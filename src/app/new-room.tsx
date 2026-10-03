@@ -56,12 +56,22 @@ export default function NewRoomScreen() {
       })
       .select('id')
       .single();
-    setBusy(false);
     if (error) {
+      setBusy(false);
       const msg = error.message.includes('duplicate')
         ? 'A room with a similar name already exists.'
         : error.message;
       Alert.alert('Could not create room', msg);
+      return;
+    }
+    const { error: membershipError } = await supabase.from('room_members').insert({
+      room_id: data.id,
+      user_id: profile.id,
+      room_role: 'owner',
+    });
+    setBusy(false);
+    if (membershipError) {
+      Alert.alert('Room created, but creator membership failed', membershipError.message);
       return;
     }
     router.replace(`/room/${data.id}`);
