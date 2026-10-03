@@ -31,7 +31,10 @@ export default function ChatsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (consumeRoomCreated()) setFilter('all');
+      if (consumeRoomCreated()) {
+        setFilter('all');
+        setQuery('');
+      }
       if (hasFocused.current) void refresh();
       else hasFocused.current = true;
     }, [refresh]),

@@ -23,7 +23,11 @@ export function useChats() {
 
   const refresh = useCallback(async () => {
     const [roomsRes, dmsRes, unreadRes] = await Promise.all([
-      supabase.from('rooms').select('*').order('kind', { ascending: true }).order('created_at'),
+      supabase
+        .from('rooms')
+        .select('*')
+        .order('kind', { ascending: true })
+        .order('created_at', { ascending: false }),
       supabase.rpc('my_dms'),
       supabase.rpc('unread_counts'),
     ]);
